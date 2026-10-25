@@ -7,6 +7,7 @@ import { Home } from '@/components/mentax/screens/home'
 import { Write } from '@/components/mentax/screens/write'
 import { Diary, EntryView } from '@/components/mentax/screens/diary'
 import { Week } from '@/components/mentax/screens/week'
+import { WeekReview } from '@/components/mentax/screens/week-review'
 import { GoalEditor, Goals } from '@/components/mentax/screens/goals'
 import { Profile } from '@/components/mentax/screens/profile'
 import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
@@ -52,6 +53,7 @@ export default function Page() {
     goals: <Goals {...props} />,
     goal: <GoalEditor key={id ?? 'new'} goal={id ? data.goals.find((g) => g.id === id) : undefined} {...props} />,
     profile: <Profile {...props} />,
+    weekReview: <WeekReview key={id} weekStart={id ?? ''} {...props} />,
   }[screen]
 
   return <main className="app-shell"><div className="phone-frame">{content}{TAB_SCREENS.includes(screen) && <BottomNav active={screen} navigate={navigate} />}{toast && <div className="toast" role="status">{toast}</div>}</div></main>

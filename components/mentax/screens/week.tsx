@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Lightbulb, RefreshCw, Sparkles } from 'lucide-react'
+import { ChevronRight, Flag, Lightbulb, RefreshCw, Sparkles } from 'lucide-react'
+import { pendingWeekReview } from '@/lib/week-plan'
+import { WeekPlanCard } from './week-review'
 import { AIUnavailableError, summarizeWeek } from '@/lib/ai/client'
 import { addDays, formatWeekRange, weekDays, weekStart } from '@/lib/dates'
 import { db } from '@/lib/db'
@@ -37,6 +39,7 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
     const r = data.entries.find((x) => x.id === l.reflectionId)
     return r && r.date >= days[0] && r.date <= days[6]
   })
+  const plan = data.weekPlans.find((p) => p.weekStart === start)
   const weeks = Array.from({ length: HISTORY_WEEKS }, (_, i) => addDays(current, -7 * i))
 
   async function generate() {
@@ -64,7 +67,9 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
       {summary.areas.length > 0 && <><h2 className="section-title">Áreas a mejorar</h2><div className="improve-card">{summary.areas.map((a) => <p key={a}><ChevronRight size={14} /> {a}</p>)}</div></>}
     </>}
     {!loading && !summary && weekLearnings.length > 0 && <><h2 className="section-title">Aprendizajes guardados</h2><div className="insight-card">{weekLearnings.map((l, i) => <div className="insight" key={l.id}><span className={`insight-icon ${INSIGHT_TONES[i % INSIGHT_TONES.length]}`}><Lightbulb size={15} /></span><p>{l.text}</p></div>)}</div></>}
-    {!loading && error && <div className="notice-card"><p>{error}</p></div>}
+    {plan && <><h2 className="section-title">Cierre de la semana</h2><WeekPlanCard plan={plan} /></>}
+    {!plan && start === pendingWeekReview(data.weekPlans.map((p) => p.weekStart)) && <Button variant="soft" className="full-button plan-button" onClick={() => navigate('weekReview', start)}><Flag size={15} /> Cerrar la semana</Button>}
+    {!loading && error &&<div className="notice-card"><p>{error}</p></div>}
     {!loading && inWeek.length === 0 && <div className="empty-card">No hay entradas en tu diario esta semana. Cuando escribas, aquí verás tu resumen.</div>}
     {!loading && inWeek.length > 0 && (!summary || outdated) && <Button className="full-button" onClick={generate}>{summary ? <><RefreshCw size={15} /> Actualizar resumen con IA</> : <><Sparkles size={16} /> Generar resumen con IA</>}</Button>}
 

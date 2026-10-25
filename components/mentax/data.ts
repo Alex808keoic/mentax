@@ -3,13 +3,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { currentStreak, dayKey } from '@/lib/dates'
 import { db, getProfile, listEntries } from '@/lib/db'
-import type { Entry, Goal, Learning, Profile } from '@/lib/types'
+import type { Entry, Goal, Learning, Profile, WeekPlan } from '@/lib/types'
 
 export interface AppData {
   profile: Profile
   entries: Entry[]
   goals: Goal[]
   learnings: Learning[]
+  weekPlans: WeekPlan[]
   streak: number
   today: string
 }
@@ -20,7 +21,8 @@ export function useAppData(): AppData | undefined {
   const entries = useLiveQuery(listEntries)
   const goals = useLiveQuery(() => db.goals.orderBy('createdAt').toArray())
   const learnings = useLiveQuery(() => db.learnings.orderBy('createdAt').reverse().toArray())
-  if (!profile || !entries || !goals || !learnings) return undefined
+  const weekPlans = useLiveQuery(() => db.weekPlans.toArray())
+  if (!profile || !entries || !goals || !learnings || !weekPlans) return undefined
   const today = dayKey()
-  return { profile, entries, goals, learnings, today, streak: currentStreak(entries.map((e) => e.date), today) }
+  return { profile, entries, goals, learnings, weekPlans, today, streak: currentStreak(entries.map((e) => e.date), today) }
 }

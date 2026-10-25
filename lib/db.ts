@@ -4,8 +4,8 @@
  */
 import Dexie, { type Table } from 'dexie'
 import { deriveTitle, migrateEntry } from './entries'
-import { MANUAL, normalizeTracking, trackingOf, withCheckin } from './goals'
-import type { DailyIdeas, DayKey, Entry, Goal, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekSummary } from './types'
+import { guessTracking, MANUAL, normalizeTracking, trackingOf, withCheckin } from './goals'
+import type { DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
 
 interface SettingEntry {
   key: string
@@ -19,6 +19,7 @@ class MentaxDB extends Dexie {
   learnings!: Table<Learning, string>
   weekSummaries!: Table<WeekSummary, DayKey>
   dailyIdeas!: Table<DailyIdeas, DayKey>
+  weekPlans!: Table<WeekPlan, DayKey>
   settings!: Table<SettingEntry, string>
 
   constructor() {
@@ -41,6 +42,8 @@ class MentaxDB extends Dexie {
     this.version(3).upgrade((tx) => tx.table('reflections').toCollection().modify((r, ref) => {
       ref.value = migrateEntry(r)
     }))
+    // v4: cierre semanal de los domingos.
+    this.version(4).stores({ weekPlans: 'weekStart' })
   }
 }
 
@@ -246,6 +249,42 @@ export async function saveLearning(text: string, reflectionId?: string): Promise
 
 export function deleteLearning(id: string): Promise<void> {
   return db.learnings.delete(id)
+}
+
+// ── Cierre semanal ──────────────────────────────────────
+
+export interface WeekPlanDraft {
+  weekStart: DayKey
+  /** Objetivos activos que el usuario ha conseguido: se completan. */
+  achievedIds: string[]
+  achievedNote: string
+  /** Objetivos activos con los que sigue la semana siguiente. */
+  keepIds: string[]
+  /** Objetivos nuevos escritos por el usuario. */
+  newGoals: string[]
+}
+
+/** Guarda el cierre: completa lo conseguido, crea los objetivos nuevos y apunta el plan. */
+export async function saveWeekPlan(draft: WeekPlanDraft): Promise<void> {
+  await db.transaction('rw', db.goals, db.weekPlans, async () => {
+    const achieved: GoalRef[] = []
+    for (const id of draft.achievedIds) {
+      const goal = await db.goals.get(id)
+      if (!goal) continue
+      if (goal.status === 'active') await updateGoal(id, { status: 'completed' })
+      achieved.push({ id, title: goal.title })
+    }
+    const next: GoalRef[] = []
+    for (const id of draft.keepIds) {
+      const goal = await db.goals.get(id)
+      if (goal && goal.status === 'active') next.push({ id, title: goal.title })
+    }
+    for (const title of draft.newGoals.map((t) => t.trim()).filter(Boolean)) {
+      const id = await createGoal(title, '', 0, { tracking: guessTracking(title) })
+      next.push({ id, title })
+    }
+    await db.weekPlans.put({ weekStart: draft.weekStart, achieved, achievedNote: draft.achievedNote.trim(), next, createdAt: Date.now() })
+  })
 }
 
 // ── Todo ────────────────────────────────────────────────

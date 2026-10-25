@@ -4,9 +4,9 @@
  */
 import { db } from './db'
 import { migrateEntry } from './entries'
-import type { Entry, Goal, Learning, Profile, WeekSummary } from './types'
+import type { Entry, Goal, Learning, Profile, WeekPlan, WeekSummary } from './types'
 
-export const BACKUP_VERSION = 2
+export const BACKUP_VERSION = 3
 
 export interface Backup {
   app: 'mentax'
@@ -18,22 +18,25 @@ export interface Backup {
     goals: Goal[]
     learnings: Learning[]
     weekSummaries: WeekSummary[]
+    /** Cierres semanales (desde la versión 3). */
+    weekPlans?: WeekPlan[]
   }
 }
 
 export async function buildBackup(now: Date = new Date()): Promise<Backup> {
-  const [profile, reflections, goals, learnings, weekSummaries] = await Promise.all([
+  const [profile, reflections, goals, learnings, weekSummaries, weekPlans] = await Promise.all([
     db.settings.get('profile'),
     db.reflections.toArray(),
     db.goals.toArray(),
     db.learnings.toArray(),
     db.weekSummaries.toArray(),
+    db.weekPlans.toArray(),
   ])
   return {
     app: 'mentax',
     version: BACKUP_VERSION,
     exportedAt: now.toISOString(),
-    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries },
+    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries, weekPlans },
   }
 }
 
@@ -59,20 +62,24 @@ export function parseBackup(text: string): Backup {
   }
   const goals = data.goals as Record<string, unknown>[]
   if (!goals.every((g) => typeof g.id === 'string' && typeof g.title === 'string')) throw new Error('La copia de seguridad está incompleta o dañada.')
+  if (data.weekPlans !== undefined && (!Array.isArray(data.weekPlans) || !data.weekPlans.every((p) => isObject(p) && typeof p.weekStart === 'string'))) {
+    throw new Error('La copia de seguridad está incompleta o dañada.')
+  }
   return raw as unknown as Backup
 }
 
 /** Sustituye todos los datos actuales por los de la copia. */
 export async function restoreBackup(backup: Backup): Promise<void> {
-  const { profile, reflections, goals, learnings, weekSummaries } = backup.data
-  await db.transaction('rw', [db.reflections, db.goals, db.learnings, db.weekSummaries, db.settings, db.dailyIdeas], async () => {
-    await Promise.all([db.reflections.clear(), db.goals.clear(), db.learnings.clear(), db.weekSummaries.clear(), db.settings.clear(), db.dailyIdeas.clear()])
+  const { profile, reflections, goals, learnings, weekSummaries, weekPlans = [] } = backup.data
+  await db.transaction('rw', [db.reflections, db.goals, db.learnings, db.weekSummaries, db.weekPlans, db.settings, db.dailyIdeas], async () => {
+    await Promise.all([db.reflections.clear(), db.goals.clear(), db.learnings.clear(), db.weekSummaries.clear(), db.weekPlans.clear(), db.settings.clear(), db.dailyIdeas.clear()])
     if (profile) await db.settings.put({ key: 'profile', value: profile })
     // Las copias de la primera versión traen reflexiones guiadas: se convierten al diario.
     await db.reflections.bulkPut(reflections.map(migrateEntry))
     await db.goals.bulkPut(goals)
     await db.learnings.bulkPut(learnings)
     await db.weekSummaries.bulkPut(weekSummaries)
+    await db.weekPlans.bulkPut(weekPlans)
   })
 }
 

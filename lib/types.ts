@@ -103,6 +103,23 @@ export interface WeekSummary {
   createdAt: number
 }
 
+export interface GoalRef {
+  id: string
+  title: string
+}
+
+/** El cierre del domingo: qué objetivos se consiguieron y cuáles se propone para la semana siguiente. */
+export interface WeekPlan {
+  /** Lunes de la semana que se cierra. */
+  weekStart: DayKey
+  achieved: GoalRef[]
+  /** Otros logros de la semana, con sus palabras. */
+  achievedNote: string
+  /** Objetivos para la semana siguiente (nuevos o que siguen activos). */
+  next: GoalRef[]
+  createdAt: number
+}
+
 /** Ideas para escribir del día (las sugiere la IA o el banco local). */
 export interface DailyIdeas {
   date: DayKey

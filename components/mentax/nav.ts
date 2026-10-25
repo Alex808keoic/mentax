@@ -1,4 +1,4 @@
-export type Screen = 'home' | 'write' | 'diary' | 'entry' | 'week' | 'goals' | 'goal' | 'profile'
+export type Screen = 'home' | 'write' | 'diary' | 'entry' | 'week' | 'goals' | 'goal' | 'profile' | 'weekReview'
 
 export interface Route {
   screen: Screen

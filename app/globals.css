@@ -138,10 +138,6 @@ button:disabled { cursor: default; opacity: .55; }
 .entry-actions { margin-top: 22px; }
 .entry-mood { margin-left: 7px; font-size: 12px; }
 .entry-card > p.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.goal-checkin { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: 1px solid #f4dfc0; background: #fffaf2; color: #c4791f; border-radius: 13px; padding: 12px 13px; margin: -8px 0 22px; }
-.goal-checkin span { display: flex; flex-direction: column; gap: 3px; }
-.goal-checkin b { font-size: 11.5px; color: #4c3f2a; }
-.goal-checkin small { font-size: 10px; color: #8c7550; }
 
 /* ── Seguimiento de objetivos ─────────────────────────── */
 .goal-suggest-row span { display: flex; flex-direction: column; gap: 2px; }
@@ -174,3 +170,36 @@ button:disabled { cursor: default; opacity: .55; }
 .checkin-row span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .checkin-row b { font-size: 10.5px; color: var(--ink); }
 .checkin-row small { font-size: 10px; color: #77768b; }
+.week-review-card { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: 1px solid #d9d0fb; background: linear-gradient(135deg, #f7f4ff, #efeaff); color: #6b54e0; border-radius: 14px; padding: 13px; margin: -8px 0 22px; box-shadow: 0 6px 16px rgba(117, 91, 239, .12); }
+.week-review-card > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.week-review-card b { font-size: 12px; color: var(--ink); }
+.week-review-card small { font-size: 10px; line-height: 1.45; color: #6c6886; }
+.review-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 11px; background: #fff; color: #7560ee; }
+.review-intro .review-icon { background: var(--lavender-light); }
+.review-icon.done { color: #e9a34a; background: #fff1df; }
+.review-intro { margin-bottom: 18px; }
+.review-intro h2 { font-size: 18px; letter-spacing: -.03em; margin: 12px 0 8px; }
+.review-intro p { color: var(--muted); font-size: 11px; line-height: 1.55; margin: 0; }
+.review-subtitle { font-size: 11.5px; margin: 18px 0 9px; }
+.review-list { display: flex; flex-direction: column; gap: 8px; }
+.review-row { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: 1px solid #eeeef4; background: #fff; border-radius: 12px; padding: 11px 12px; color: var(--ink); }
+.review-row i { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 7px; border: 1.5px solid #d7d3e8; color: #fff; font-style: normal; }
+.review-row span { flex: 1; display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 700; }
+.review-row small { font-size: 9.5px; font-weight: 400; color: #878699; }
+.review-row.checked { border-color: #cfc5fa; background: #faf8ff; }
+.review-row.checked i { background: #7560ee; border-color: #7560ee; }
+.review-row.locked i { background: #45b88d; border-color: #45b88d; }
+.review-note { margin-top: 18px; }
+.review-inputs { display: flex; flex-direction: column; gap: 8px; }
+.review-inputs div { display: flex; align-items: center; gap: 6px; }
+.review-inputs input { flex: 1; min-width: 0; border: 1px solid #e8e7ef; background: #fbfbfd; border-radius: 11px; outline: 0; padding: 11px 12px; font-size: 12px; color: var(--ink); }
+.review-inputs input:focus { border-color: #9d8df4; box-shadow: 0 0 0 3px #f0edff; }
+.add-goal-line { margin-top: 6px; padding: 0 4px; }
+.review-actions { margin-top: 20px; }
+.plan-card { display: flex; flex-direction: column; gap: 14px; border: 1px solid #eeeef5; border-radius: 13px; padding: 14px; margin-bottom: 24px; box-shadow: 0 2px 9px rgba(53, 47, 103, .045); }
+.plan-card div + div { border-top: 1px solid #f0f0f5; padding-top: 12px; }
+.plan-card b { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #7560e5; }
+.plan-card p { display: flex; align-items: center; gap: 7px; margin: 9px 0 0; font-size: 11px; color: #4c4a64; }
+.plan-card p svg { flex: none; color: #45b88d; }
+.plan-card p.plan-note { display: block; color: #6c6886; font-style: italic; line-height: 1.5; }
+.plan-button { margin: 0 0 22px; }
