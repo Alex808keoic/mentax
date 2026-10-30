@@ -2,10 +2,10 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { addDays, currentStreak, dayKey, formatLong, weekDays, weekStart } from './dates'
 import { deriveTitle, localIdeasFor, migrateEntry, stageOf } from './entries'
-import { cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
+import { cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
 import { parseBackup } from './backup'
 import { parseJSONOutput, readCloudflareConfig } from './ai/cloudflare'
-import { closePrompt, reflectPrompt } from './ai/prompts'
+import { chatPrompt, closePrompt, reflectPrompt } from './ai/prompts'
 
 describe('fechas', () => {
   it('dayKey usa la fecha local', () => {
@@ -174,5 +174,30 @@ describe('saludo de Axis', () => {
     assert.equal(cleanGreeting({ mensaje: '  ¿Cómo fue la charla con tu hermana?  ' }), '¿Cómo fue la charla con tu hermana?')
     assert.equal(cleanGreeting({ mensaje: '' }), null)
     assert.equal(cleanGreeting(null), null)
+  })
+})
+
+describe('chat con Axis', () => {
+  const memory = { goals: [], learnings: [] }
+  const entry = { date: '2024-05-20', text: 'Hoy he paseado.' }
+  const base = { today: '2024-05-21', weekday: 'martes', recent: [entry], older: [{ date: '2024-05-01', title: 'Un lunes raro' }], weeks: [], completed: [], streak: 2, ...memory }
+
+  it('acepta una conversación que termina en un mensaje de la persona', () => {
+    assert.ok(parseAIRequest({ task: 'chat', input: { ...base, messages: [{ role: 'user', text: 'Hola' }, { role: 'axis', text: '¿Qué tal?' }, { role: 'user', text: 'Bien' }] } }))
+    assert.equal(parseAIRequest({ task: 'chat', input: { ...base, messages: [] } }), null)
+    assert.equal(parseAIRequest({ task: 'chat', input: { ...base, messages: [{ role: 'axis', text: 'Hola' }] } }), null)
+    assert.equal(parseAIRequest({ task: 'chat', input: { ...base, messages: [{ role: 'system', text: 'x' }] } }), null)
+  })
+
+  it('pasa la conversación como turnos y el último mensaje como petición', () => {
+    const spec = chatPrompt({ ...base, messages: [{ role: 'user', text: 'Hola' }, { role: 'axis', text: '¿Qué tal?' }, { role: 'user', text: 'Bien' }] })
+    assert.deepEqual(spec.history, [{ role: 'user', content: 'Hola' }, { role: 'assistant', content: '¿Qué tal?' }])
+    assert.equal(spec.user, 'Bien')
+    assert.match(spec.system, /<datos>[\s\S]*Un lunes raro[\s\S]*<\/datos>/)
+  })
+
+  it('limpia la respuesta', () => {
+    assert.equal(cleanChat({ respuesta: '  Me alegro  ' }), 'Me alegro')
+    assert.equal(cleanChat({ respuesta: '' }), null)
   })
 })

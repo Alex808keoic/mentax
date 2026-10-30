@@ -3,9 +3,9 @@
  * de una tarea, llama a Cloudflare y devuelve la salida ya limpia. No guarda nada.
  */
 import { NextResponse } from 'next/server'
-import { cleanAboutReading, cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, MAX_BODY_BYTES, parseAIRequest, type AIErrorCode, type AIResponse } from '@/lib/ai/contract'
+import { cleanAboutReading, cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, MAX_BODY_BYTES, parseAIRequest, type AIErrorCode, type AIResponse } from '@/lib/ai/contract'
 import { AICallError, readCloudflareConfig, runCloudflare } from '@/lib/ai/cloudflare'
-import { aboutPrompt, closePrompt, greetingPrompt, ideasPrompt, reflectPrompt, weekPrompt } from '@/lib/ai/prompts'
+import { aboutPrompt, chatPrompt, closePrompt, greetingPrompt, ideasPrompt, reflectPrompt, weekPrompt } from '@/lib/ai/prompts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     else if (body.task === 'ideas') data = cleanIdeas(await runCloudflare(config, ideasPrompt(body.input)))
     else if (body.task === 'about') data = cleanAboutReading(await runCloudflare(config, aboutPrompt(body.input)))
     else if (body.task === 'greeting') data = cleanGreeting(await runCloudflare(config, greetingPrompt(body.input)))
+    else if (body.task === 'chat') data = cleanChat(await runCloudflare(config, chatPrompt(body.input)))
     else data = cleanWeek(await runCloudflare(config, weekPrompt(body.input)))
     if (!data) return fail('failed', 502)
     return NextResponse.json<AIResponse<unknown>>({ ok: true, data })

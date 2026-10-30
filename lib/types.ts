@@ -87,6 +87,14 @@ export interface Goal {
 }
 
 /** Un aprendizaje que el usuario decidió guardar. Es la memoria de Mentax. */
+/** Un mensaje del chat con Axis. */
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'axis'
+  text: string
+  createdAt: number
+}
+
 export interface Learning {
   id: string
   text: string

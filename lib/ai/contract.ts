@@ -56,6 +56,23 @@ export interface GreetingInput extends MemoryContext {
   recent: ContextEntry[]
 }
 
+
+/** Chat con Axis: la conversación y todo lo que sabe de la persona. */
+export interface ChatInput extends MemoryContext {
+  today: DayKey
+  weekday: string
+  /** Últimas entradas completas (de más nueva a más antigua). */
+  recent: ContextEntry[]
+  /** Entradas anteriores, solo fecha, ánimo y título. */
+  older: { date: DayKey; mood?: Mood; title: string }[]
+  /** Resúmenes de las últimas semanas. */
+  weeks: { weekStart: DayKey; resumen: string }[]
+  /** Objetivos ya conseguidos. */
+  completed: string[]
+  streak: number
+  messages: { role: 'user' | 'axis'; text: string }[]
+}
+
 export type AIRequestBody =
   | { task: 'reflect'; input: ReflectInput }
   | { task: 'close'; input: CloseInput }
@@ -63,6 +80,7 @@ export type AIRequestBody =
   | { task: 'week'; input: WeekInput }
   | { task: 'about'; input: AboutInput }
   | { task: 'greeting'; input: GreetingInput }
+  | { task: 'chat'; input: ChatInput }
 
 export type AITask = AIRequestBody['task']
 
@@ -92,6 +110,16 @@ const isMemory = (v: Record<string, unknown>) =>
 
 const isEntryList = (v: unknown) => Array.isArray(v) && v.length <= 14 && v.every(isEntry)
 
+const isChat = (v: Record<string, unknown>) =>
+  isEntryList(v.recent) &&
+  Array.isArray(v.older) && v.older.length <= 120 && v.older.every((e) => isObject(e) && typeof e.date === 'string' && typeof e.title === 'string') &&
+  Array.isArray(v.weeks) && v.weeks.length <= 4 && v.weeks.every((w) => isObject(w) && typeof w.weekStart === 'string' && typeof w.resumen === 'string') &&
+  Array.isArray(v.completed) && v.completed.length <= 20 && v.completed.every((c) => typeof c === 'string') &&
+  typeof v.streak === 'number' &&
+  Array.isArray(v.messages) && v.messages.length > 0 && v.messages.length <= 30 &&
+  v.messages.every((m) => isObject(m) && (m.role === 'user' || m.role === 'axis') && typeof m.text === 'string' && m.text.length <= 4000) &&
+  (v.messages.at(-1) as { role: string }).role === 'user'
+
 /** Devuelve la petición si tiene la forma esperada; si no, null. */
 export function parseAIRequest(raw: unknown): AIRequestBody | null {
   if (!isObject(raw) || !isObject(raw.input) || !isMemory(raw.input)) return null
@@ -105,6 +133,8 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
       return typeof input.today === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'week':
       return typeof input.weekStart === 'string' && isEntryList(input.entries) && (input.entries as unknown[]).length > 0 ? (raw as AIRequestBody) : null
+    case 'chat':
+      return typeof input.today === 'string' && typeof input.weekday === 'string' && isChat(input) ? (raw as AIRequestBody) : null
     case 'greeting':
       return typeof input.today === 'string' && typeof input.weekday === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'about':
@@ -214,4 +244,9 @@ export function cleanWeek(raw: unknown): Pick<WeekSummary, 'resumen' | 'aprendiz
 export function cleanGreeting(raw: unknown): string | null {
   if (!isObject(raw)) return null
   return str(raw.mensaje, 280) || null
+}
+
+export function cleanChat(raw: unknown): string | null {
+  if (!isObject(raw)) return null
+  return str(raw.respuesta, 3000) || null
 }

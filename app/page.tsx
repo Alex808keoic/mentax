@@ -11,6 +11,7 @@ import { WeekReview } from '@/components/mentax/screens/week-review'
 import { GoalEditor, Goals } from '@/components/mentax/screens/goals'
 import { Profile } from '@/components/mentax/screens/profile'
 import { Onboarding } from '@/components/mentax/screens/onboarding'
+import { AxisChat } from '@/components/mentax/screens/axis'
 import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
 
 export default function Page() {
@@ -56,6 +57,7 @@ export default function Page() {
     week: <Week {...props} />,
     goals: <Goals {...props} />,
     goal: <GoalEditor key={id ?? 'new'} goal={id ? data.goals.find((g) => g.id === id) : undefined} {...props} />,
+    axis: <AxisChat data={data} notify={notify} />,
     profile: <Profile {...props} />,
     weekReview: <WeekReview key={id} weekStart={id ?? ''} {...props} />,
     about: <Onboarding editing returnTo={id === 'home' ? 'home' : 'profile'} {...props} />,

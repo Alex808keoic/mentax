@@ -276,3 +276,42 @@ button:disabled { cursor: default; opacity: .55; }
 .axis-card b { display: block; font-size: 11px; color: #13838e; margin-bottom: 4px; }
 .axis-card p { margin: 0; color: #3d4a57; font-size: 12px; line-height: 1.5; }
 .axis-card.waiting p { color: #7a9aa0; }
+
+/* ── Perfil en Inicio y chat con Axis ──────────────────── */
+.profile-button { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 750; background: #8b70ef; box-shadow: 0 4px 10px rgba(117,92,229,.22); }
+.profile-button:active { transform: scale(.95); }
+.axis-screen { display: flex; flex-direction: column; height: calc(100dvh - 60px - env(safe-area-inset-bottom)); min-height: 0; padding-bottom: 10px; }
+@media (min-width: 640px) { .axis-screen { height: auto; overflow: hidden; } }
+.axis-header { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; border-bottom: 1px solid #eef3f4; }
+.axis-header > div { flex: 1; min-width: 0; }
+.axis-header h1 { font-size: 16px; margin: 0 0 2px; }
+.axis-header p { margin: 0; color: var(--muted); font-size: 10px; }
+.axis-header .icon-button { color: #9a98ab; }
+.axis-header .icon-button.confirm { color: #c2453d; font-size: 11px; font-weight: 700; background: #fdeeed; padding: 6px 9px; }
+.chat-log { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 8px; padding: 16px 2px 12px; }
+.chat-log::-webkit-scrollbar { display: none; }
+.chat-empty { margin: auto 0; text-align: center; padding: 10px 8px; animation: step-up .45s ease both; }
+.chat-empty .axis-mark { margin-bottom: 12px; }
+.chat-empty h2 { font-size: 17px; margin: 0 0 8px; }
+.chat-empty > p { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 0 0 18px; }
+.chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.chat-starters button { border: 1px solid #c9eef2; background: #f4fdfe; color: #13838e; border-radius: 16px; padding: 8px 12px; font-size: 11px; }
+.chat-starters button:active { background: #e3f6f8; }
+.bubble { max-width: 84%; padding: 10px 13px; border-radius: 16px; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; animation: bubble-in .22s ease-out both; }
+.bubble.user { align-self: flex-end; color: #fff; background: #7a62ec; border-bottom-right-radius: 5px; }
+.bubble.axis { align-self: flex-start; color: #2f3b45; background: #eef8f9; border: 1px solid #d8eff2; border-bottom-left-radius: 5px; }
+.bubble.typing { display: flex; gap: 4px; padding: 13px 14px; }
+.bubble.typing i { width: 6px; height: 6px; border-radius: 50%; background: #1bb5c4; animation: typing-dot 1.1s ease-in-out infinite; }
+.bubble.typing i:nth-child(2) { animation-delay: .15s; }
+.bubble.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes typing-dot { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+.chat-error { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #fff6ec; color: #9a5a1c; font-size: 11px; }
+.chat-error p { margin: 0; }
+.chat-error button { display: inline-flex; align-items: center; gap: 5px; flex: none; border: 0; background: #fff; color: #9a5a1c; border-radius: 10px; padding: 6px 9px; font-size: 11px; font-weight: 700; }
+.chat-composer { display: flex; align-items: flex-end; gap: 8px; padding: 6px 6px 6px 14px; border: 1px solid #e3e2ec; border-radius: 22px; background: #fbfbfd; }
+.chat-composer:focus-within { border-color: #8fd3db; box-shadow: 0 0 0 3px #e6f6f8; }
+.chat-composer textarea { flex: 1; resize: none; border: 0; outline: 0; background: transparent; padding: 7px 0; font-size: 13px; line-height: 1.4; max-height: 120px; color: var(--ink); }
+.chat-composer button { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #1bb5c4, #13838e); }
+.chat-note { margin: 7px 0 0; text-align: center; color: #a3a2b2; font-size: 9px; }
+@media (prefers-reduced-motion: reduce) { .bubble, .chat-empty { animation: none; } .bubble.typing i { animation-duration: 2.4s; } }

@@ -51,6 +51,7 @@ export async function runCloudflare(config: CloudflareConfig, spec: PromptSpec, 
     max_completion_tokens: spec.maxOutputTokens,
     messages: [
       { role: 'system', content: spec.system },
+      ...(spec.history ?? []),
       { role: 'user', content: spec.user },
     ],
     response_format: { type: 'json_schema', json_schema: { name: 'mentax_output', strict: true, schema: spec.schema } },

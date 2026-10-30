@@ -38,7 +38,7 @@ export function Home({ data, navigate }: { data: AppData; navigate: Navigate }) 
   }, [today])
 
   return <div className="screen scrollable home-screen">
-    <header className="home-header"><div className="brand"><Logo /><span>Mentax</span></div></header>
+    <header className="home-header"><div className="brand"><Logo /><span>Mentax</span></div><button className="profile-button" onClick={() => navigate('profile')} aria-label="Abrir tu perfil">{(profile.name || 'M').charAt(0).toUpperCase()}</button></header>
     <section className="welcome"><p className="eyebrow">{formatEyebrow(today)}</p><h1>{greeting()}{profile.name ? `, ${profile.name}` : ''}</h1><p>Pequeños pasos cada día,<br />grandes cambios siempre.</p></section>
     <section className={`axis-card ${axisText ? '' : 'waiting'}`} aria-live="polite"><AxisMark size="md" /><div><b>Axis</b><p>{axisText ?? 'Pensando en tu día…'}</p></div></section>
     {/* Quien ya usaba Mentax antes del onboarding: se le invita a rellenar «Sobre ti». */}

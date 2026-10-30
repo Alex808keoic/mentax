@@ -4,9 +4,9 @@
  */
 import { db } from './db'
 import { migrateEntry } from './entries'
-import type { AboutMe, Entry, Goal, Learning, Profile, WeekPlan, WeekSummary } from './types'
+import type { AboutMe, ChatMessage, Entry, Goal, Learning, Profile, WeekPlan, WeekSummary } from './types'
 
-export const BACKUP_VERSION = 4
+export const BACKUP_VERSION = 5
 
 export interface Backup {
   app: 'mentax'
@@ -22,11 +22,13 @@ export interface Backup {
     weekPlans?: WeekPlan[]
     /** Lo que contó en el onboarding (desde la versión 4). */
     about?: AboutMe | null
+    /** Conversación con Axis (desde la versión 5). */
+    chat?: ChatMessage[]
   }
 }
 
 export async function buildBackup(now: Date = new Date()): Promise<Backup> {
-  const [profile, about, reflections, goals, learnings, weekSummaries, weekPlans] = await Promise.all([
+  const [profile, about, reflections, goals, learnings, weekSummaries, weekPlans, chat] = await Promise.all([
     db.settings.get('profile'),
     db.settings.get('about'),
     db.reflections.toArray(),
@@ -34,12 +36,13 @@ export async function buildBackup(now: Date = new Date()): Promise<Backup> {
     db.learnings.toArray(),
     db.weekSummaries.toArray(),
     db.weekPlans.toArray(),
+    db.chat.orderBy('createdAt').toArray(),
   ])
   return {
     app: 'mentax',
     version: BACKUP_VERSION,
     exportedAt: now.toISOString(),
-    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries, weekPlans, about: (about?.value as AboutMe | undefined) ?? null },
+    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries, weekPlans, about: (about?.value as AboutMe | undefined) ?? null, chat },
   }
 }
 
@@ -66,6 +69,9 @@ export function parseBackup(text: string): Backup {
   const goals = data.goals as Record<string, unknown>[]
   if (!goals.every((g) => typeof g.id === 'string' && typeof g.title === 'string')) throw new Error('La copia de seguridad está incompleta o dañada.')
   if (data.about !== undefined && data.about !== null && !isObject(data.about)) throw new Error('La copia de seguridad está incompleta o dañada.')
+  if (data.chat !== undefined && (!Array.isArray(data.chat) || !data.chat.every((m) => isObject(m) && typeof m.id === 'string' && typeof m.text === 'string' && (m.role === 'user' || m.role === 'axis')))) {
+    throw new Error('La copia de seguridad está incompleta o dañada.')
+  }
   if (data.weekPlans !== undefined && (!Array.isArray(data.weekPlans) || !data.weekPlans.every((p) => isObject(p) && typeof p.weekStart === 'string'))) {
     throw new Error('La copia de seguridad está incompleta o dañada.')
   }
@@ -74,9 +80,9 @@ export function parseBackup(text: string): Backup {
 
 /** Sustituye todos los datos actuales por los de la copia. */
 export async function restoreBackup(backup: Backup): Promise<void> {
-  const { profile, reflections, goals, learnings, weekSummaries, weekPlans = [], about } = backup.data
-  await db.transaction('rw', [db.reflections, db.goals, db.learnings, db.weekSummaries, db.weekPlans, db.settings, db.dailyIdeas], async () => {
-    await Promise.all([db.reflections.clear(), db.goals.clear(), db.learnings.clear(), db.weekSummaries.clear(), db.weekPlans.clear(), db.settings.clear(), db.dailyIdeas.clear()])
+  const { profile, reflections, goals, learnings, weekSummaries, weekPlans = [], about, chat = [] } = backup.data
+  await db.transaction('rw', [db.reflections, db.goals, db.learnings, db.weekSummaries, db.weekPlans, db.settings, db.dailyIdeas, db.chat], async () => {
+    await Promise.all([db.reflections.clear(), db.goals.clear(), db.learnings.clear(), db.weekSummaries.clear(), db.weekPlans.clear(), db.settings.clear(), db.dailyIdeas.clear(), db.chat.clear()])
     if (profile) await db.settings.put({ key: 'profile', value: profile })
     if (about) await db.settings.put({ key: 'about', value: about })
     // Las copias de la primera versión traen reflexiones guiadas: se convierten al diario.
@@ -85,6 +91,7 @@ export async function restoreBackup(backup: Backup): Promise<void> {
     await db.learnings.bulkPut(learnings)
     await db.weekSummaries.bulkPut(weekSummaries)
     await db.weekPlans.bulkPut(weekPlans)
+    await db.chat.bulkPut(chat)
   })
 }
 

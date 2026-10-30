@@ -2,9 +2,9 @@
  * Lado cliente de la IA: reúne el contexto desde la base local, llama a
  * /api/ai y guarda el resultado. Sin IA, el diario sigue funcionando.
  */
-import { addDays, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
+import { addDays, currentStreak, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
 import { describeAbout } from '../about'
-import { applyEntryProgress, db, getAbout, saveAnswersAndClosing, saveMentaxReflection } from '../db'
+import { addChatMessage, applyEntryProgress, db, getAbout, listChat, saveAnswersAndClosing, saveMentaxReflection } from '../db'
 import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
 import { localIdeasFor } from '../entries'
 import { localGreeting, type AxisGreeting } from '../axis'
@@ -201,4 +201,41 @@ export async function axisGreeting(today: DayKey): Promise<AxisGreeting> {
   }
   await db.settings.put({ key: 'axisGreeting', value: greeting })
   return greeting
+}
+
+// ── Chat con Axis ───────────────────────────────────────
+
+/** Responde al último mensaje del chat y guarda la respuesta. */
+export async function axisReply(): Promise<void> {
+  const today = dayKey()
+  const history = (await listChat()).slice(-20)
+  if (history.at(-1)?.role !== 'user') return
+  const [context, entries, weeks, completed] = await Promise.all([
+    memory(today),
+    db.reflections.orderBy('date').reverse().toArray(),
+    db.weekSummaries.orderBy('weekStart').reverse().limit(3).toArray(),
+    db.goals.where('status').equals('completed').reverse().sortBy('updatedAt'),
+  ])
+  const written = entries.filter((e) => e.text.trim())
+  const text = await callAI<string>({
+    task: 'chat',
+    input: {
+      today,
+      weekday: weekdayOf(today),
+      recent: written.slice(0, 10).map((e) => toContext(e, 1000)),
+      older: written.slice(10, 130).map((e) => ({ date: e.date, ...(e.mood ? { mood: e.mood } : {}), title: e.title || clip(e.text.trim(), 60) })),
+      weeks: weeks.filter((w) => w.resumen).map((w) => ({ weekStart: w.weekStart, resumen: w.resumen })),
+      completed: completed.slice(0, 20).map((g) => g.title),
+      streak: currentStreak(entries.map((e) => e.date), today),
+      messages: history.map((m) => ({ role: m.role, text: clip(m.text, 1500) })),
+      ...context,
+    },
+  }, 40_000)
+  await addChatMessage('axis', text)
+}
+
+/** Guarda el mensaje de la persona y pide la respuesta de Axis. */
+export async function sendToAxis(text: string): Promise<void> {
+  await addChatMessage('user', clip(text.trim(), 1500))
+  await axisReply()
 }

@@ -6,7 +6,7 @@ import Dexie, { type Table } from 'dexie'
 import { EMPTY_ABOUT } from './about'
 import { deriveTitle, migrateEntry } from './entries'
 import { guessTracking, MANUAL, normalizeTracking, trackingOf, withCheckin } from './goals'
-import type { AboutMe, DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
+import type { AboutMe, ChatMessage, DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
 
 interface SettingEntry {
   key: string
@@ -22,6 +22,7 @@ class MentaxDB extends Dexie {
   dailyIdeas!: Table<DailyIdeas, DayKey>
   weekPlans!: Table<WeekPlan, DayKey>
   settings!: Table<SettingEntry, string>
+  chat!: Table<ChatMessage, string>
 
   constructor() {
     super('mentax')
@@ -45,6 +46,8 @@ class MentaxDB extends Dexie {
     }))
     // v4: cierre semanal de los domingos.
     this.version(4).stores({ weekPlans: 'weekStart' })
+    // v5: chat con Axis.
+    this.version(5).stores({ chat: 'id, createdAt' })
   }
 }
 
@@ -297,6 +300,20 @@ export async function saveWeekPlan(draft: WeekPlanDraft): Promise<void> {
     }
     await db.weekPlans.put({ weekStart: draft.weekStart, achieved, achievedNote: draft.achievedNote.trim(), next, createdAt: Date.now() })
   })
+}
+
+// ── Chat con Axis ───────────────────────────────────────
+
+export async function addChatMessage(role: ChatMessage['role'], text: string): Promise<ChatMessage> {
+  const message: ChatMessage = { id: newId(), role, text: text.trim(), createdAt: Date.now() }
+  await db.chat.add(message)
+  return message
+}
+
+export const listChat = () => db.chat.orderBy('createdAt').toArray()
+
+export async function clearChat(): Promise<void> {
+  await db.chat.clear()
 }
 
 // ── Todo ────────────────────────────────────────────────

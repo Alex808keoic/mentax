@@ -1,11 +1,13 @@
 /**
  * Instrucciones y esquemas JSON de cada tarea de IA. Solo se usan en el servidor.
  */
-import type { AboutInput, CloseInput, ContextEntry, GreetingInput, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
+import type { AboutInput, ChatInput, CloseInput, ContextEntry, GreetingInput, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
 
 export interface PromptSpec {
   system: string
   user: string
+  /** Conversación previa (chat). Si está, va antes de `user`, que es el último mensaje. */
+  history?: { role: 'user' | 'assistant'; content: string }[]
   schema: Record<string, unknown>
   maxOutputTokens: number
 }
@@ -219,5 +221,59 @@ ${formatMemory(input)}
 </datos>`,
     schema: { type: 'object', additionalProperties: false, required: ['mensaje'], properties: { mensaje: { type: 'string' } } },
     maxOutputTokens: 200,
+  }
+}
+
+const APP_GUIDE = `Cómo funciona Mentax (por si te pregunta):
+- Diario: cada día escribe libremente. Tú lees la entrada, le das una reflexión y le haces 2 preguntas; cuando responde, cierras el día con un comentario y un aprendizaje que puede guardar. Si no sabe qué escribir, puede pedir ideas.
+- Objetivos: los crea en la pestaña Objetivos o tú se los propones cuando los menciona en el diario. Tú vas apuntando los avances que cuenta, y los que se pueden medir se completan solos.
+- Semana: su ánimo, su constancia y el resumen semanal que tú haces. El domingo cierra la semana: qué objetivos ha conseguido y cuáles se propone.
+- Perfil (botón arriba a la derecha en Inicio): nombre, «Sobre ti» (lo que contó al empezar, editable), aprendizajes guardados, copia de seguridad, privacidad y ayuda.
+- Todo se guarda solo en su dispositivo; a la IA solo se envía lo necesario para responder y no se almacena.
+- En este chat no puedes crear, cambiar ni borrar nada de la app: si quiere hacerlo, dile dónde.`
+
+export function chatPrompt(input: ChatInput): PromptSpec {
+  const older = input.older.length ? input.older.map((e) => `- [${e.date}${e.mood ? ` · ánimo ${e.mood}/5` : ''}] ${e.title}`).join('\n') : '- (ninguna)'
+  const weeks = input.weeks.length ? input.weeks.map((w) => `- Semana del ${w.weekStart}: ${w.resumen}`).join('\n') : '- (ninguno)'
+  const completed = input.completed.length ? input.completed.map((c) => `- ${c}`).join('\n') : '- (ninguno)'
+  const turns = input.messages.map((m) => ({ role: m.role === 'axis' ? ('assistant' as const) : ('user' as const), content: m.text }))
+  return {
+    system: `${PERSONA}
+
+Ahora estás en el chat de Mentax: la persona te escribe directamente, cuando quiere y de lo que quiere. Conoces su diario, sus objetivos, sus aprendizajes y lo que contó sobre sí misma (abajo, entre <datos>).
+Cómo hablar:
+- Con naturalidad, como alguien cercano que la conoce de verdad. Puedes hablar en primera persona.
+- Ajusta la longitud a lo que te escribe: a un mensaje corto o casual, 1-3 frases; si cuenta algo importante o pide ayuda, algo más, pero nunca más de unas 150 palabras.
+- Sin encabezados, negritas ni listas, salvo que te pida algo que lo necesite. Nada de fórmulas repetidas ("Entiendo", "Qué interesante"), ni de saludar en cada mensaje, ni de repetir su nombre.
+- Usa lo que sabes de su diario y sus objetivos cuando venga a cuento, y si citas algo di de qué día es ("el martes contabas que…"). No recites datos sin motivo.
+- Si te pregunta algo que no está en los datos, dilo con sencillez. No inventes recuerdos ni hechos.
+- Como mucho una pregunta por mensaje, y solo si ayuda a seguir la conversación.
+- Si sale algo grave (sufrimiento intenso, desesperanza, ideas de hacerse daño, violencia, abuso, una crisis), responde con mucho cuidado y sin alarmismo, y recomienda hablar con un profesional de la salud mental o con alguien de confianza; si hay riesgo para la vida, menciona el 024 (gratuito, 24 h) o el 112 si es una emergencia.
+
+${APP_GUIDE}
+
+Devuelve en "respuesta" tu siguiente mensaje del chat. Responde solo con JSON.
+
+Hoy es ${input.weekday}, ${input.today}. Lleva ${input.streak} ${input.streak === 1 ? 'día' : 'días'} seguidos escribiendo.
+
+<datos>
+Últimas entradas del diario (de más nueva a más antigua):
+${recentBlock(input.recent)}
+
+Entradas anteriores (solo el título):
+${older}
+
+Resúmenes de las últimas semanas:
+${weeks}
+
+Objetivos ya conseguidos:
+${completed}
+
+${formatMemory(input)}
+</datos>`,
+    history: turns.slice(0, -1),
+    user: turns.at(-1)?.content ?? '',
+    schema: { type: 'object', additionalProperties: false, required: ['respuesta'], properties: { respuesta: { type: 'string' } } },
+    maxOutputTokens: 700,
   }
 }
