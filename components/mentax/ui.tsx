@@ -8,6 +8,11 @@ export function Logo() {
   return <div className="brand-mark"><img src="/mentax-cerebro.png" alt="Logo de Mentax" /></div>
 }
 
+/** Símbolo de Axis, la IA de Mentax: un eje que atraviesa un círculo. */
+export function AxisMark({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+  return <span className={`axis-mark ${size}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="6.5" /><path d="M15.4 3.2 8.6 20.8" /><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" /></svg></span>
+}
+
 export function Button({ children, onClick, variant = 'primary', className = '', disabled, type = 'button' }: { children: React.ReactNode; onClick?: () => void; variant?: 'primary' | 'ghost' | 'soft'; className?: string; disabled?: boolean; type?: 'button' | 'submit' }) {
   return <button type={type} onClick={onClick} disabled={disabled} className={`app-button ${variant} ${className}`}>{children}</button>
 }

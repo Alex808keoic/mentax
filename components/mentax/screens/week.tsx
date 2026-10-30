@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Flag, Lightbulb, RefreshCw, Sparkles } from 'lucide-react'
+import { ChevronRight, Flag, Lightbulb, RefreshCw } from 'lucide-react'
 import { pendingWeekReview } from '@/lib/week-plan'
 import { WeekPlanCard } from './week-review'
 import { AIUnavailableError, summarizeWeek } from '@/lib/ai/client'
@@ -11,7 +11,7 @@ import { db } from '@/lib/db'
 import type { Entry, Mood } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate } from '../nav'
-import { Button, Header, Loading, moodOf } from '../ui'
+import { AxisMark, Button, Header, Loading, moodOf } from '../ui'
 
 const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const INSIGHT_TONES = ['violet', 'blue', 'peach']
@@ -62,7 +62,7 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
 
     {loading && <Loading text="Preparando el resumen de tu semana…" />}
     {!loading && summary && <>
-      {summary.resumen && <div className="analysis-card week-summary"><b>Cómo ha ido</b><p>{summary.resumen}</p></div>}
+      {summary.resumen && <div className="analysis-card week-summary"><b><AxisMark /> Cómo ha ido, según Axis</b><p>{summary.resumen}</p></div>}
       {summary.aprendizajes.length > 0 && <><h2 className="section-title">Aprendizajes clave</h2><div className="insight-card">{summary.aprendizajes.map((text, i) => <div className="insight" key={text}><span className={`insight-icon ${INSIGHT_TONES[i % INSIGHT_TONES.length]}`}><Lightbulb size={15} /></span><p>{text}</p></div>)}</div></>}
       {summary.areas.length > 0 && <><h2 className="section-title">Áreas a mejorar</h2><div className="improve-card">{summary.areas.map((a) => <p key={a}><ChevronRight size={14} /> {a}</p>)}</div></>}
     </>}
@@ -71,7 +71,7 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
     {!plan && start === pendingWeekReview(data.weekPlans.map((p) => p.weekStart)) && <Button variant="soft" className="full-button plan-button" onClick={() => navigate('weekReview', start)}><Flag size={15} /> Cerrar la semana</Button>}
     {!loading && error &&<div className="notice-card"><p>{error}</p></div>}
     {!loading && inWeek.length === 0 && <div className="empty-card">No hay entradas en tu diario esta semana. Cuando escribas, aquí verás tu resumen.</div>}
-    {!loading && inWeek.length > 0 && (!summary || outdated) && <Button className="full-button" onClick={generate}>{summary ? <><RefreshCw size={15} /> Actualizar resumen con IA</> : <><Sparkles size={16} /> Generar resumen con IA</>}</Button>}
+    {!loading && inWeek.length > 0 && (!summary || outdated) && <Button className="full-button" onClick={generate}>{summary ? <><RefreshCw size={15} /> Pedir a Axis que lo actualice</> : <><AxisMark /> Pedir a Axis el resumen de tu semana</>}</Button>}
 
     <h2 className="section-title growth-title">Tu evolución</h2>
     <Growth entries={data.entries} weeks={[...weeks].reverse()} selected={start} onSelect={setStart} />

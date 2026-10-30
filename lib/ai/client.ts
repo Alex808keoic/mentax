@@ -7,6 +7,7 @@ import { describeAbout } from '../about'
 import { applyEntryProgress, db, getAbout, saveAnswersAndClosing, saveMentaxReflection } from '../db'
 import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
 import { localIdeasFor } from '../entries'
+import { localGreeting, type AxisGreeting } from '../axis'
 import type { AboutMe, DayKey, Entry, WeekSummary } from '../types'
 import type { AboutReading, AIErrorCode, AIRequestBody, AIResponse, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
 
@@ -17,10 +18,10 @@ export class AIUnavailableError extends Error {
 }
 
 export const AI_ERROR_MESSAGE: Record<AIErrorCode, string> = {
-  'not-configured': 'La IA de Mentax todavía no está activada en esta versión.',
+  'not-configured': 'Axis todavía no está disponible en esta versión.',
   'rate-limit': 'Has hecho muchas peticiones seguidas. Espera unos minutos y vuelve a intentarlo.',
   'bad-request': 'No se ha podido preparar la petición a la IA.',
-  failed: 'Mentax no ha podido responder ahora mismo. Inténtalo de nuevo en un momento.',
+  failed: 'Axis no ha podido responder ahora mismo. Inténtalo de nuevo en un momento.',
 }
 
 // Si el servidor no tiene IA configurada, no se vuelve a preguntar en esta sesión.
@@ -103,7 +104,7 @@ async function recentEntries(before: DayKey, count: number, maxText: number, exc
 
 const weekdayOf = (date: DayKey) => parseDayKey(date).toLocaleDateString('es-ES', { weekday: 'long' })
 
-// ── Reflexión de Mentax sobre la entrada ────────────────
+// ── Reflexión de Axis sobre la entrada ────────────────
 
 export async function reflectOnEntry(id: string): Promise<ProgressOutcome> {
   const entry = await db.reflections.get(id)
@@ -165,7 +166,7 @@ export async function summarizeWeek(start: DayKey): Promise<WeekSummary> {
 
 // ── Al terminar «Sobre ti» ──────────────────────────────
 
-/** Lo que Mentax ha entendido de la persona y objetivos para empezar. Null si no contó nada. */
+/** Lo que Axis ha entendido de la persona y objetivos para empezar. Null si no contó nada. */
 export async function readAbout(about: AboutMe): Promise<AboutReading | null> {
   const perfil = describeAbout(about)
   if (!perfil) return null
@@ -173,4 +174,31 @@ export async function readAbout(about: AboutMe): Promise<AboutReading | null> {
   const reading = await callAI<AboutReading>({ task: 'about', input: { ...context, perfil: clip(perfil, 2400) } }, 25_000)
   // Por si la IA repite algo que ya tiene.
   return { ...reading, objetivos: reading.objetivos.filter((g) => !context.goals.some((x) => isSimilarGoal(x.title, g.title))) }
+}
+
+// ── Saludo diario de Axis ───────────────────────────────
+
+// Si la IA falla, se usa el saludo local y no se vuelve a intentar en esta sesión.
+let greetingFailedOn: DayKey | null = null
+
+/** Un saludo por día: se pide a la IA la primera vez y se guarda. */
+export async function axisGreeting(today: DayKey): Promise<AxisGreeting> {
+  const cached = (await db.settings.get('axisGreeting'))?.value as AxisGreeting | undefined
+  if (cached?.date === today) return cached
+  const [context, recent] = await Promise.all([memory(today), recentEntries(addDays(today, -1), 3, 500)])
+  const last = (await db.reflections.where('date').below(today).reverse().sortBy('date'))[0]
+  let greeting: AxisGreeting = { date: today, text: localGreeting(today, last, context.goals.map((g) => g.title)), source: 'local' }
+  if (greetingFailedOn === today) return greeting
+  // Sin nada que retomar, no hace falta preguntar a la IA.
+  if (recent.length || context.goals.length || context.perfil) {
+    try {
+      const text = await callAI<string>({ task: 'greeting', input: { today, weekday: weekdayOf(today), recent, ...context } }, 15_000)
+      greeting = { date: today, text, source: 'ai' }
+    } catch {
+      greetingFailedOn = today
+      return greeting
+    }
+  }
+  await db.settings.put({ key: 'axisGreeting', value: greeting })
+  return greeting
 }

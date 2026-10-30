@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, Lock, PenLine, Plus, Sparkles, Target, X } from 'lucide-react'
+import { ArrowRight, Check, Lock, PenLine, Plus, Target, X } from 'lucide-react'
 import { AGES, AREAS, describeAbout, EMPTY_ABOUT, MAX_PICKS, MOTIVES, OCCUPATIONS, SUPPORTS, TONES, type AboutOption } from '@/lib/about'
 import { readAbout } from '@/lib/ai/client'
 import type { AboutReading } from '@/lib/ai/contract'
@@ -10,14 +10,14 @@ import { describeTracking } from '@/lib/goals'
 import type { AboutMe, DetectedGoal } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify, Screen } from '../nav'
-import { Button, Header, Logo, MoodPicker } from '../ui'
+import { AxisMark, Button, Header, Logo, MoodPicker } from '../ui'
 
 const QUESTIONS = ['name', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
 type Step = 'welcome' | Question | 'done'
 
 /**
- * La primera vez que se entra, Mentax pregunta quién eres. Lo que cuentes se
+ * La primera vez que se entra, Axis pregunta quién eres. Lo que cuentes se
  * guarda en «Sobre ti» y la IA lo tiene en cuenta. Desde Perfil (o la tarjeta
  * del inicio, para quien ya usaba la app) se puede rellenar o editar.
  */
@@ -44,14 +44,14 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   }
 
   if (step === 'welcome') return <div className="screen scrollable onboarding">
-    <section className="onboarding-hero"><Logo /><h1>Hola, esto es Mentax</h1><p>Tu espacio para conocerte, entender lo que vives y avanzar a tu ritmo.</p><p>Antes de empezar, Mentax quiere conocerte un poco. Son unas preguntas rápidas, unos dos minutos, y le ayudarán a acompañarte mejor.</p></section>
+    <section className="onboarding-hero"><Logo /><h1>Hola, esto es Mentax</h1><p>Tu espacio para conocerte, entender lo que vives y avanzar a tu ritmo.</p><p>Aquí te acompaña <b className="axis-name">Axis</b>: lee tu diario, reflexiona contigo, te hace preguntas y te ayuda con tus objetivos. Antes de empezar, quiere conocerte un poco. Son unas preguntas rápidas, unos dos minutos, y le ayudarán a acompañarte mejor.</p></section>
     <p className="onboarding-privacy"><Lock size={13} /> Lo que cuentes se guarda solo en este dispositivo.</p>
     <Button className="full-button" onClick={() => go('name', 'forward')}>Empezar <ArrowRight size={16} /></Button>
     <Button variant="ghost" className="full-button onboarding-skip" onClick={skip}>Ahora no</Button>
   </div>
 
   if (step === 'done') return <Done about={about} name={name.trim()} editing={editing} notify={notify}>
-    {editing ? <Button className="full-button" onClick={() => save(() => { notify('Guardado. Mentax lo tendrá en cuenta'); navigate(returnTo, undefined, { replace: true }) })} disabled={saving}><Check size={16} /> Listo</Button> : <>
+    {editing ? <Button className="full-button" onClick={() => save(() => { notify('Guardado. Axis lo tendrá en cuenta'); navigate(returnTo, undefined, { replace: true }) })} disabled={saving}><Check size={16} /> Listo</Button> : <>
       <div className="prompt-card onboarding-next"><b>Tu primer paso</b><p>Cuenta cómo ha ido tu día: qué has hecho, cómo te has sentido o qué te ronda la cabeza. No hace falta que sea largo.</p></div>
       <Button className="full-button" onClick={() => save(() => navigate('write'))} disabled={saving}><PenLine size={15} /> Escribir mi primera entrada</Button>
       <Button variant="ghost" className="full-button onboarding-skip" onClick={() => save(() => navigate('home'))} disabled={saving}>Ir al inicio</Button>
@@ -81,12 +81,12 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
 
     <div key={step} className={`onboarding-step ${direction}`}>
       {step === 'name' && <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) next() }}>
-        <Intro title="¿Cómo quieres que Mentax te llame?" text="Tu nombre o como te guste que te llamen." />
+        <Intro title="¿Cómo quieres que Axis te llame?" text="Tu nombre o como te guste que te llamen." />
         <label className="field"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={40} autoFocus aria-label="Tu nombre" /></label>
       </form>}
 
       {step === 'motives' && <>
-        <Intro title={`¿Qué te trae por aquí${name.trim() ? `, ${name.trim()}` : ''}?`} text="Elige hasta tres. Así Mentax sabrá en qué fijarse al leer tu diario." />
+        <Intro title={`¿Qué te trae por aquí${name.trim() ? `, ${name.trim()}` : ''}?`} text="Elige hasta tres. Así Axis sabrá en qué fijarse al leer tu diario." />
         <Chips options={MOTIVES} value={about.motives} max={MAX_PICKS} onChange={(motives) => set({ motives })} />
       </>}
 
@@ -115,13 +115,13 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
       </>}
 
       {step === 'supports' && <>
-        <Intro title="Cuando tienes un mal día, ¿qué te ayuda?" text="Elige todo lo que quieras. Mentax lo tendrá en cuenta cuando las cosas se tuerzan." />
+        <Intro title="Cuando tienes un mal día, ¿qué te ayuda?" text="Elige todo lo que quieras. Axis lo tendrá en cuenta cuando las cosas se tuerzan." />
         {/* «Aún no lo sé» no se combina con las demás. */}
         <Chips options={SUPPORTS} value={about.supports} onChange={(supports) => set({ supports: supports.at(-1) === 'nose' ? ['nose'] : supports.filter((s) => s !== 'nose') })} />
       </>}
 
       {step === 'tone' && <>
-        <Intro title="¿Cómo quieres que Mentax te hable?" text="Puedes cambiarlo cuando quieras desde tu perfil." />
+        <Intro title="¿Cómo quieres que Axis te hable?" text="Puedes cambiarlo cuando quieras desde tu perfil." />
         <div className="review-list">{TONES.map((t) => { const on = about.tone === t.id; return <button className={`review-row radio ${on ? 'checked' : ''}`} key={t.id} onClick={() => set({ tone: on ? undefined : t.id })} aria-pressed={on}><i>{on && <Check size={13} />}</i><span>{t.label}<small>{t.hint}</small></span></button> })}</div>
       </>}
     </div>
@@ -152,7 +152,7 @@ const THINKING = ['Leyendo tus respuestas', 'Entendiendo quién eres', 'Pensando
 const MIN_THINKING_MS = 2400
 
 /**
- * Pantalla final: el cerebro de Mentax piensa y después muestra lo que ha
+ * Pantalla final: el cerebro de Axis piensa y después muestra lo que ha
  * entendido de la persona y los objetivos que le propone. Sin IA, solo el cierre.
  */
 function Done({ about, name, editing, notify, children }: { about: AboutMe; name: string; editing: boolean; notify: Notify; children: React.ReactNode }) {
@@ -180,15 +180,15 @@ function Done({ about, name, editing, notify, children }: { about: AboutMe; name
 
   if (reading === undefined) return <div className="screen onboarding thinking" role="status" aria-live="polite">
     <div className="thinking-brain"><i /><i /><Logo /></div>
-    <h2>Mentax está pensando en ti</h2>
+    <h2>Axis está pensando en ti</h2>
     <p key={phrase} className="thinking-phrase">{THINKING[phrase]}<span className="thinking-dots"><i>.</i><i>.</i><i>.</i></span></p>
   </div>
 
   const goals = (reading?.objetivos ?? []).filter((g) => !dropped.includes(g.title))
   return <div className="screen scrollable onboarding onboarding-reveal">
-    <section className="onboarding-hero"><Logo /><h1>{editing ? 'Gracias por contarlo' : 'Un placer conocerte'}{name ? `, ${name}` : ''}</h1>{!reading && <p>Mentax ya sabe un poco más de ti y lo tendrá en cuenta cada vez que escribas.</p>}</section>
-    {reading && <div className="about-reading"><b><Sparkles size={13} /> Lo que Mentax ha entendido de ti</b><p>{reading.reflexion}</p></div>}
-    {goals.length > 0 && <div className="goal-suggest"><b><Target size={13} /> Objetivos para empezar</b><p>A partir de lo que te gustaría cambiar, Mentax te propone estos objetivos. Irá apuntando tus avances cuando los cuentes en el diario.</p>{goals.map((g) => {
+    <section className="onboarding-hero"><Logo /><h1>{editing ? 'Gracias por contarlo' : 'Un placer conocerte'}{name ? `, ${name}` : ''}</h1>{!reading && <p>Axis ya sabe un poco más de ti y lo tendrá en cuenta cada vez que escribas.</p>}</section>
+    {reading && <div className="about-reading"><b><AxisMark /> Lo que Axis ha entendido de ti</b><p>{reading.reflexion}</p></div>}
+    {goals.length > 0 && <div className="goal-suggest"><b><Target size={13} /> Objetivos para empezar</b><p>A partir de lo que te gustaría cambiar, Axis te propone estos objetivos. Irá apuntando tus avances cuando los cuentes en el diario.</p>{goals.map((g) => {
       const isAdded = added.includes(g.title)
       return <div className={`goal-suggest-row ${isAdded ? 'added' : ''}`} key={g.title}><span>{g.title}<small>Se medirá: {describeTracking(g.tracking)}</small></span>
         {isAdded ? <em className="added-badge"><Check size={13} /> Añadido</em> : <><button className="add" onClick={() => add(g)}><Plus size={13} /> Añadir</button><button className="icon-button small" onClick={() => setDropped((list) => [...list, g.title])} aria-label="Descartar"><X size={14} /></button></>}

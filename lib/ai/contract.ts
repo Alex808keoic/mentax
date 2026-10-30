@@ -10,7 +10,7 @@ export interface ContextEntry {
   date: DayKey
   mood?: Mood
   text: string
-  /** Lo que Mentax preguntó y lo que respondió el usuario. */
+  /** Lo que Axis preguntó y lo que respondió el usuario. */
   qa?: { pregunta: string; respuesta: string }[]
   aprendizaje?: string
 }
@@ -46,8 +46,15 @@ export interface WeekInput extends MemoryContext {
   entries: ContextEntry[]
 }
 
-/** Al terminar el onboarding: qué ha entendido Mentax de la persona (`perfil`) y objetivos para empezar. */
+/** Al terminar el onboarding: qué ha entendido Axis de la persona (`perfil`) y objetivos para empezar. */
 export type AboutInput = MemoryContext & { perfil: string }
+
+/** Saludo diario de Axis en Inicio. */
+export interface GreetingInput extends MemoryContext {
+  today: DayKey
+  weekday: string
+  recent: ContextEntry[]
+}
 
 export type AIRequestBody =
   | { task: 'reflect'; input: ReflectInput }
@@ -55,6 +62,7 @@ export type AIRequestBody =
   | { task: 'ideas'; input: IdeasInput }
   | { task: 'week'; input: WeekInput }
   | { task: 'about'; input: AboutInput }
+  | { task: 'greeting'; input: GreetingInput }
 
 export type AITask = AIRequestBody['task']
 
@@ -97,6 +105,8 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
       return typeof input.today === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'week':
       return typeof input.weekStart === 'string' && isEntryList(input.entries) && (input.entries as unknown[]).length > 0 ? (raw as AIRequestBody) : null
+    case 'greeting':
+      return typeof input.today === 'string' && typeof input.weekday === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'about':
       return typeof input.perfil === 'string' && input.perfil.trim() !== '' ? (raw as AIRequestBody) : null
     default:
@@ -175,7 +185,7 @@ export function cleanClosing(raw: unknown, now: number = Date.now()): CloseResul
 }
 
 export interface AboutReading {
-  /** Lo que Mentax ha entendido de la persona, hablándole de tú. */
+  /** Lo que Axis ha entendido de la persona, hablándole de tú. */
   reflexion: string
   objetivos: DetectedGoal[]
 }
@@ -199,4 +209,9 @@ export function cleanWeek(raw: unknown): Pick<WeekSummary, 'resumen' | 'aprendiz
   const areas = strList(raw.areas, 3)
   if (!resumen && aprendizajes.length === 0) return null
   return { resumen, aprendizajes, areas }
+}
+
+export function cleanGreeting(raw: unknown): string | null {
+  if (!isObject(raw)) return null
+  return str(raw.mensaje, 280) || null
 }

@@ -69,7 +69,7 @@ export function WeekReview({ weekStart, data, navigate, notify }: { weekStart: s
       <h3 className="review-subtitle">Objetivos nuevos</h3>
       <div className="review-inputs">{newGoals.map((t, i) => <div key={i}><input value={t} onChange={(e) => setNewGoals(newGoals.map((x, j) => (j === i ? e.target.value : x)))} placeholder={i === 0 ? 'Ej.: Salir a correr 3 veces' : 'Otro objetivo'} maxLength={80} autoFocus={i === newGoals.length - 1 && i > 0} />{newGoals.length > 1 && <button className="icon-button small" onClick={() => setNewGoals(newGoals.filter((_, j) => j !== i))} aria-label="Quitar"><X size={14} /></button>}</div>)}</div>
       {newGoals.length < 5 && <Button variant="ghost" className="add-goal-line" onClick={() => setNewGoals([...newGoals, ''])}><Plus size={14} /> Añadir otro</Button>}
-      <p className="form-hint">Si escribes cuántas veces («3 veces», «cada día»), Mentax lo medirá solo con tu diario.</p>
+      <p className="form-hint">Si escribes cuántas veces («3 veces», «cada día»), Axis lo medirá solo con tu diario.</p>
       <div className="button-row review-actions"><Button variant="soft" onClick={() => setStep('achieved')}>Atrás</Button><Button onClick={save} disabled={!nextCount || saving}>Cerrar la semana <Check size={16} /></Button></div>
     </>}
   </div>

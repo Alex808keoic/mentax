@@ -1,7 +1,7 @@
 /**
  * Instrucciones y esquemas JSON de cada tarea de IA. Solo se usan en el servidor.
  */
-import type { AboutInput, CloseInput, ContextEntry, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
+import type { AboutInput, CloseInput, ContextEntry, GreetingInput, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
 
 export interface PromptSpec {
   system: string
@@ -10,7 +10,7 @@ export interface PromptSpec {
   maxOutputTokens: number
 }
 
-const PERSONA = `Eres Mentax, un acompañante de reflexión personal. Cada día la persona escribe libremente en su diario y tú la lees. Escribes en español de España, tuteas y usas un tono cálido, cercano y sereno.
+const PERSONA = `Eres Axis, el acompañante de reflexión personal de la app Mentax. Ese es tu nombre; no hace falta que te presentes ni que lo repitas. Cada día la persona escribe libremente en su diario y tú la lees. Escribes en español de España, tuteas y usas un tono cálido, cercano y sereno.
 Principios:
 - No juzgas ni dices a nadie quién debe ser. Ayudas a hacerse mejores preguntas y a comprender las propias decisiones.
 - Hablas desde la observación ("parece que…", "quizá…"), nunca desde la certeza ni el diagnóstico.
@@ -24,7 +24,7 @@ const SERIOUS = `Situaciones graves: si lo escrito muestra sufrimiento intenso o
 
 function formatEntry(e: ContextEntry): string {
   const mood = e.mood ? ` · ánimo ${e.mood}/5` : ''
-  const qa = e.qa?.length ? `\n  Preguntas de Mentax y respuestas:\n${e.qa.map((x) => `  - ${x.pregunta}\n    ${x.respuesta || '(sin responder)'}`).join('\n')}` : ''
+  const qa = e.qa?.length ? `\n  Preguntas de Axis y respuestas:\n${e.qa.map((x) => `  - ${x.pregunta}\n    ${x.respuesta || '(sin responder)'}`).join('\n')}` : ''
   const learning = e.aprendizaje ? `\n  Aprendizaje del día: ${e.aprendizaje}` : ''
   return `[${e.date}${mood}]\n  ${e.text.trim().replace(/\n+/g, '\n  ')}${qa}${learning}`
 }
@@ -200,5 +200,24 @@ ${formatMemory(input)}
 </datos>`,
     schema: { type: 'object', additionalProperties: false, required: ['reflexion', 'objetivos'], properties: { reflexion: { type: 'string' }, objetivos: detectedGoalsSchema } },
     maxOutputTokens: 800,
+  }
+}
+
+export function greetingPrompt(input: GreetingInput): PromptSpec {
+  return {
+    system: `${PERSONA}
+
+Tu tarea: el saludo del día. Es lo primero que la persona ve al abrir la app, antes de escribir. Devuelve en "mensaje" 1 o 2 frases (máximo 35 palabras) que le den continuidad: retoma con naturalidad algo concreto de sus últimas entradas (lo que le preocupaba, algo que iba a hacer, cómo se sentía) o anímale con alguno de sus objetivos activos. Si es lunes, puede mirar a la semana; si es fin de semana, a cómo ha ido. Sin saludo inicial ("Hola", "Buenos días"), sin su nombre, sin listas, sin dar consejos y como mucho una pregunta. Si no hay entradas ni objetivos, una frase sencilla y cálida que invite a escribir. Si en las últimas entradas hay sufrimiento intenso, sé especialmente cuidadoso y suave.
+Responde solo con JSON.`,
+    user: `Hoy es ${input.weekday}, ${input.today}.
+
+<datos>
+Últimas entradas (de más nueva a más antigua):
+${recentBlock(input.recent)}
+
+${formatMemory(input)}
+</datos>`,
+    schema: { type: 'object', additionalProperties: false, required: ['mensaje'], properties: { mensaje: { type: 'string' } } },
+    maxOutputTokens: 200,
   }
 }

@@ -44,7 +44,7 @@ export default function Page() {
   if (!data) return <main className="app-shell"><div className="phone-frame"><div className="screen"><Loading text="Cargando…" /></div></div></main>
 
   const props = { data, navigate, notify }
-  // La primera vez (sin onboarding ni entradas), Mentax pregunta quién eres antes de nada.
+  // La primera vez (sin onboarding ni entradas), Axis pregunta quién eres antes de nada.
   if (!data.about.completedAt && data.entries.length === 0) return <main className="app-shell"><div className="phone-frame"><Onboarding {...props} /></div></main>
 
   const { screen, id } = route

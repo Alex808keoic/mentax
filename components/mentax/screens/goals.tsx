@@ -28,7 +28,7 @@ export function Goals({ data, navigate }: { data: AppData; navigate: Navigate })
     <div className="goals-list">{goals.map((g) => { const s = goalStatus(g, data.today); return <button className="goal-card" key={g.id} onClick={() => navigate('goal', g.id)}><span className={`goal-icon ${g.tone}`}>{g.status === 'completed' ? <Check size={17} /> : <Target size={17} />}</span><span className="goal-info"><b>{g.title}</b><small>{s.label}{g.entryId && ' · Del diario'}</small><span className="goal-progress"><i style={{ width: `${s.percent}%` }} /></span><em>{s.percent}%</em></span></button> })}</div>
     {goals.length === 0 && <div className="empty-card">{tab === 'completed' ? 'Aún no has completado ningún objetivo. ¡Todo llegará!' : 'Todavía no tienes objetivos. Escríbelos en tu diario («esta semana quiero…») o añádelos aquí.'}</div>}
     <Button variant="soft" className="full-button" onClick={() => navigate('goal')}><Plus size={16} /> Añadir objetivo</Button>
-    {tab === 'active' && goals.some((g) => trackingOf(g).kind !== 'manual') && <p className="form-hint">Mentax rellena la barra sola cuando cuentas en el diario que has avanzado.</p>}
+    {tab === 'active' && goals.some((g) => trackingOf(g).kind !== 'manual') && <p className="form-hint">Axis rellena la barra sola cuando cuentas en el diario que has avanzado.</p>}
   </div>
 }
 
@@ -92,7 +92,7 @@ export function GoalEditor({ goal, data, navigate, notify }: { goal?: Goal; data
       <div className="field"><b>¿Cómo se mide?</b>
         <div className="tab-row kind-row">{KINDS.map(({ kind, label }) => <button type="button" key={kind} className={tracking.kind === kind ? 'selected' : ''} onClick={() => chooseKind(kind)}>{label}</button>)}</div>
         {(tracking.kind === 'weekly' || tracking.kind === 'total') && <label className="times-field"><input type="number" min={1} max={tracking.kind === 'weekly' ? 7 : 100} value={tracking.times} onChange={(e) => { setTrackingTouched(true); setTracking(normalizeTracking({ kind: tracking.kind, times: Number(e.target.value) } as GoalTracking)) }} /> {tracking.kind === 'weekly' ? 'veces por semana' : 'veces en total'}</label>}
-        <small className="field-help">{tracking.kind === 'manual' ? 'Tú mueves la barra. Mentax igualmente apunta los días en que avanzas.' : tracking.kind === 'total' ? 'Cada avance suma uno. Al llegar a la meta se completa solo.' : 'La barra se llena con los días que avanzas y empieza de nuevo cada lunes.'}</small>
+        <small className="field-help">{tracking.kind === 'manual' ? 'Tú mueves la barra. Axis igualmente apunta los días en que avanzas.' : tracking.kind === 'total' ? 'Cada avance suma uno. Al llegar a la meta se completa solo.' : 'La barra se llena con los días que avanzas y empieza de nuevo cada lunes.'}</small>
       </div>
       {tracking.kind === 'manual' && <label className="field"><b>Progreso <span className="progress-value">{progress}%</span></b><input type="range" min={0} max={100} step={5} value={progress} onChange={(e) => setProgress(Number(e.target.value))} className="range" style={{ '--pct': `${progress}%` } as React.CSSProperties} /></label>}
       <label className="field"><b>¿Por qué es importante para ti? <span className="optional">(opcional)</span></b><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Escribe aquí..." maxLength={300} /></label>
@@ -102,7 +102,7 @@ export function GoalEditor({ goal, data, navigate, notify }: { goal?: Goal; data
     {goal && <>
       <h2 className="section-title history-title">Tus avances</h2>
       {checkins.length ? <div className="checkin-list">{checkins.map((c) => <div className="checkin-row" key={`${c.date}-${c.entryId ?? 'manual'}`}><Check size={14} /><span><b>{formatLong(c.date)}</b>{c.note && <small>{c.note}</small>}</span>{c.entryId ? <button className="icon-button small" onClick={() => navigate('entry', c.entryId)} aria-label="Ver la entrada del diario"><BookOpen size={14} /></button> : null}<button className="icon-button small" onClick={() => removeCheckin(goal.id, c.date, c.entryId)} aria-label="Quitar avance"><X size={14} /></button></div>)}</div>
-        : <div className="empty-card">Todavía no hay avances. Cuando cuentes en tu diario que has avanzado, Mentax lo apuntará aquí.</div>}
+        : <div className="empty-card">Todavía no hay avances. Cuando cuentes en tu diario que has avanzado, Axis lo apuntará aquí.</div>}
       <div className="button-row goal-actions"><Button variant="soft" onClick={toggleStatus}>{goal.status === 'active' ? <><Check size={16} /> Marcar como completado</> : <><RotateCcw size={15} /> Reactivar</>}</Button><button className={`delete-button ${confirming ? 'confirm' : ''}`} onClick={remove} onBlur={() => setConfirming(false)} aria-label="Eliminar objetivo">{confirming ? '¿Borrar?' : <Trash2 size={17} />}</button></div>
     </>}
   </div>

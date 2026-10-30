@@ -74,8 +74,8 @@ export function Write({ editId, today, navigate, notify }: { editId?: string; to
     {ideas ? <div className="prompt-card ideas"><b>Ideas para escribir</b>{ideas.map((idea) => <button key={idea} type="button" onClick={() => addIdea(idea)}>{idea}</button>)}</div>
       : <Button variant="ghost" className="idea-button" onClick={showIdeas} disabled={loadingIdeas}><Lightbulb size={15} /> {loadingIdeas ? 'Buscando ideas…' : '¿No sabes qué escribir? Dame una idea'}</Button>}
 
-    {hasConversation && changed && <div className="notice-card"><p>Si cambias el texto, Mentax volverá a leer tu entrada y empezaréis una conversación nueva.</p></div>}
-    <Button className="full-button" onClick={save} disabled={!text.trim() || saving}>{hasConversation && !changed ? 'Guardar' : <>Enviar a Mentax <Send size={15} /></>}</Button>
-    <p className="form-hint">Mentax leerá tu entrada, reflexionará sobre ella y te hará un par de preguntas.</p>
+    {hasConversation && changed && <div className="notice-card"><p>Si cambias el texto, Axis volverá a leer tu entrada y empezaréis una conversación nueva.</p></div>}
+    <Button className="full-button" onClick={save} disabled={!text.trim() || saving}>{hasConversation && !changed ? 'Guardar' : <>Enviar a Axis <Send size={15} /></>}</Button>
+    <p className="form-hint">Axis leerá tu entrada, reflexionará sobre ella y te hará un par de preguntas.</p>
   </div>
 }

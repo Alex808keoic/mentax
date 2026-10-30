@@ -10,15 +10,15 @@ import { previewOf, stageOf, type EntryStage } from '@/lib/entries'
 import type { DetectedGoal, Entry } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
-import { Button, Header, Loading, moodOf } from '../ui'
+import { AxisMark, Button, Header, Loading, moodOf } from '../ui'
 
 const TONES = ['violet', 'mint', 'peach']
 const FILTERS = ['Todas', 'Esta semana', 'Favoritas'] as const
 const MAX_ANSWER = 2000
 
 const STAGE_LABEL: Record<EntryStage, { icon: React.ReactNode; text: string }> = {
-  written: { icon: <CircleDashed size={13} />, text: 'Sin reflexión de Mentax' },
-  questions: { icon: <MessageCircleQuestion size={13} />, text: 'Mentax te ha preguntado' },
+  written: { icon: <CircleDashed size={13} />, text: 'Sin reflexión de Axis' },
+  questions: { icon: <MessageCircleQuestion size={13} />, text: 'Axis te ha preguntado' },
   closed: { icon: <CheckCircle2 size={13} />, text: 'Reflexión completa' },
 }
 
@@ -35,11 +35,11 @@ export function Diary({ data, navigate }: { data: AppData; navigate: Navigate })
       <h3>{entry.title}</h3><p className="clamp">{previewOf(entry)}</p>
       <div className="entry-footer"><span>{stage.icon} {stage.text}</span><ChevronRight size={17} /></div>
     </button> })}</div>
-    {list.length === 0 && <div className="empty-card">{filter === 'Favoritas' ? 'Aún no tienes entradas favoritas. Márcalas con el corazón desde la entrada.' : filter === 'Esta semana' ? 'Esta semana todavía no has escrito en tu diario.' : 'Tu diario está vacío. Escribe sobre tu día y Mentax reflexionará contigo.'}{filter !== 'Favoritas' && <Button className="full-button" onClick={() => navigate('write')}>Escribir en el diario</Button>}</div>}
+    {list.length === 0 && <div className="empty-card">{filter === 'Favoritas' ? 'Aún no tienes entradas favoritas. Márcalas con el corazón desde la entrada.' : filter === 'Esta semana' ? 'Esta semana todavía no has escrito en tu diario.' : 'Tu diario está vacío. Escribe sobre tu día y Axis reflexionará contigo.'}{filter !== 'Favoritas' && <Button className="full-button" onClick={() => navigate('write')}>Escribir en el diario</Button>}</div>}
     <div className="empty-note"><Sparkles size={16} /> Cada entrada es una oportunidad para conocerte mejor.</div></div>
 }
 
-/** Una entrada del diario y la conversación con Mentax: reflexión → preguntas → cierre. */
+/** Una entrada del diario y la conversación con Axis: reflexión → preguntas → cierre. */
 export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; data: AppData; navigate: Navigate; notify: Notify }) {
   const [busy, setBusy] = useState<'reflect' | 'close' | null>(null)
   const [error, setError] = useState('')
@@ -58,7 +58,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
 
   function announce({ advanced, completed }: ProgressOutcome) {
     if (completed.length) notify(`¡Objetivo completado: ${completed[0]}!`)
-    else if (advanced) notify(advanced === 1 ? 'Mentax ha apuntado un avance en tus objetivos' : `Mentax ha apuntado avances en ${advanced} objetivos`)
+    else if (advanced) notify(advanced === 1 ? 'Axis ha apuntado un avance en tus objetivos' : `Axis ha apuntado avances en ${advanced} objetivos`)
   }
 
   async function reflect() {
@@ -68,13 +68,13 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     try {
       announce(await reflectOnEntry(id))
     } catch (e) {
-      setError(e instanceof AIUnavailableError ? e.message : 'Mentax no ha podido leer tu entrada.')
+      setError(e instanceof AIUnavailableError ? e.message : 'Axis no ha podido leer tu entrada.')
     } finally {
       setBusy(null)
     }
   }
 
-  // Al llegar a una entrada sin reflexión, Mentax la lee automáticamente.
+  // Al llegar a una entrada sin reflexión, Axis la lee automáticamente.
   useEffect(() => {
     if (id && stage === 'written' && !autoStarted.current) {
       autoStarted.current = true
@@ -88,7 +88,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
   const mood = moodOf(entry.mood)
   const r = entry.reflection
   const pendingGoals = (r?.objetivos ?? []).filter((g) => !entry.handledGoals.includes(g.title) && !data.goals.some((x) => x.status === 'active' && isSimilarGoal(x.title, g.title)))
-  // Avances que Mentax ha apuntado a partir de esta entrada.
+  // Avances que Axis ha apuntado a partir de esta entrada.
   const progress = data.goals.flatMap((g) => (g.checkins ?? []).filter((c) => c.entryId === entry.id).map((c) => ({ goal: g, checkin: c })))
   const learningSaved = !!entry.closing?.aprendizaje && data.learnings.some((l) => l.text === entry.closing!.aprendizaje)
 
@@ -100,7 +100,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     try {
       announce(await closeEntry(id, answers))
     } catch (e) {
-      setError(e instanceof AIUnavailableError ? e.message : 'Mentax no ha podido leer tus respuestas.')
+      setError(e instanceof AIUnavailableError ? e.message : 'Axis no ha podido leer tus respuestas.')
     } finally {
       setBusy(null)
     }
@@ -126,24 +126,24 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     <h2 className="detail-title">{entry.title}</h2>
     <div className="diary-card"><p>{entry.text}</p></div>
 
-    {busy === 'reflect' && <Loading text="Mentax está leyendo tu entrada…" />}
+    {busy === 'reflect' && <Loading text="Axis está leyendo tu entrada…" />}
     {r && busy !== 'reflect' && <>
-      <div className="analysis-card reply"><b><Sparkles size={13} /> Mentax reflexiona</b><p>{r.reflexion}</p></div>
+      <div className="analysis-card reply"><b><AxisMark /> Axis reflexiona</b><p>{r.reflexion}</p></div>
       {r.ayudaProfesional && <div className="help-card"><LifeBuoy size={18} /><p>{r.ayudaProfesional}</p></div>}
-      {pendingGoals.length > 0 && <div className="goal-suggest"><b><Target size={13} /> Has mencionado estos objetivos</b><p>¿Quieres añadirlos? Mentax irá apuntando tus avances cuando los cuentes en el diario.</p>{pendingGoals.map((g) => <div className="goal-suggest-row" key={g.title}><span>{g.title}<small>Se medirá: {describeTracking(g.tracking)}</small></span><button className="add" onClick={() => addGoal(g)}><Plus size={13} /> Añadir</button><button className="icon-button small" onClick={() => markGoalHandled(entry.id, g.title)} aria-label="Descartar"><X size={14} /></button></div>)}</div>}
+      {pendingGoals.length > 0 && <div className="goal-suggest"><b><Target size={13} /> Has mencionado estos objetivos</b><p>¿Quieres añadirlos? Axis irá apuntando tus avances cuando los cuentes en el diario.</p>{pendingGoals.map((g) => <div className="goal-suggest-row" key={g.title}><span>{g.title}<small>Se medirá: {describeTracking(g.tracking)}</small></span><button className="add" onClick={() => addGoal(g)}><Plus size={13} /> Añadir</button><button className="icon-button small" onClick={() => markGoalHandled(entry.id, g.title)} aria-label="Descartar"><X size={14} /></button></div>)}</div>}
     </>}
     {progress.length > 0 && busy === null && <div className="progress-found"><b><TrendingUp size={13} /> Avances en tus objetivos</b>{progress.map(({ goal, checkin }) => <div className="progress-row" key={goal.id}><Check size={14} /><span><em>{goal.title}</em>{checkin.note && <small>{checkin.note}</small>}</span><button className="undo" onClick={async () => { await removeCheckin(goal.id, checkin.date, checkin.entryId); notify('Avance quitado') }}>Deshacer</button></div>)}</div>}
 
     {r && stage === 'questions' && r.preguntas.length > 0 && busy !== 'reflect' && <>
       <h2 className="section-title qa-title">Para seguir reflexionando</h2>
       {r.preguntas.map((q, i) => <label className="brief-field qa-field" key={q}><b>{i + 1}. {q}</b><textarea value={answers[i] ?? ''} onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))} onBlur={() => saveAnswers(entry.id, answers)} placeholder="Escribe tu respuesta..." maxLength={MAX_ANSWER} disabled={busy === 'close'} /></label>)}
-      {busy === 'close' ? <Loading text="Mentax está leyendo tus respuestas…" /> : <Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Mentax <Send size={15} /></Button>}
+      {busy === 'close' ? <Loading text="Axis está leyendo tus respuestas…" /> : <Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Axis <Send size={15} /></Button>}
     </>}
 
     {stage === 'closed' && entry.closing && <>
       {qaPairs(entry).length > 0 && <h2 className="section-title qa-title">Tus respuestas</h2>}
       {qaPairs(entry).map(([q, a], i) => <div className="answer-card" key={q}><b>{i + 1}. {q}</b><p>{a || <em className="muted">Sin respuesta</em>}</p></div>)}
-      <div className="analysis-card reply closing"><b><Sparkles size={13} /> Mentax cierra el día</b><p>{entry.closing.comentario}</p></div>
+      <div className="analysis-card reply closing"><b><AxisMark /> Axis cierra el día</b><p>{entry.closing.comentario}</p></div>
       {entry.closing.ayudaProfesional && entry.closing.ayudaProfesional !== r?.ayudaProfesional && <div className="help-card"><LifeBuoy size={18} /><p>{entry.closing.ayudaProfesional}</p></div>}
       {entry.closing.aprendizaje && <div className="analysis-card"><b>Aprendizaje del día</b><p>{entry.closing.aprendizaje}</p></div>}
       {entry.closing.aprendizaje && <Button variant="soft" className="full-button" disabled={learningSaved} onClick={async () => { await saveLearning(entry.closing!.aprendizaje, entry.id); notify('Aprendizaje guardado') }}>{learningSaved ? 'Aprendizaje guardado' : 'Guardar aprendizaje'} <Check size={16} /></Button>}
@@ -151,10 +151,10 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     </>}
 
     {error && <div className="notice-card"><p>{error}</p>{canRetry && <Button variant="soft" onClick={stage === 'written' ? reflect : sendAnswers}>Reintentar</Button>}</div>}
-    {!busy && stage === 'written' && !error && !autoStarted.current && <Button variant="soft" className="full-button" onClick={reflect}><Sparkles size={16} /> Pedir reflexión a Mentax</Button>}
+    {!busy && stage === 'written' && !error && !autoStarted.current && <Button variant="soft" className="full-button" onClick={reflect}><AxisMark /> Pedir reflexión a Axis</Button>}
 
     <div className="button-row entry-actions"><Button variant="soft" onClick={() => navigate('write', entry.id)}><Pencil size={16} /> Editar entrada</Button><button className={`delete-button ${confirming ? 'confirm' : ''}`} onClick={remove} onBlur={() => setConfirming(false)} aria-label="Eliminar entrada">{confirming ? '¿Borrar?' : <Trash2 size={17} />}</button></div>
-    {r && <p className="ai-disclaimer">Mentax es una herramienta de apoyo para reflexionar. No sustituye tu criterio ni la ayuda de un profesional.</p>}
+    {r && <p className="ai-disclaimer">Axis es una herramienta de apoyo para reflexionar. No sustituye tu criterio ni la ayuda de un profesional.</p>}
   </div>
 }
 

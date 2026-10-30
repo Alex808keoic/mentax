@@ -267,3 +267,12 @@ button:disabled { cursor: default; opacity: .55; }
   .onboarding-step, .thinking-phrase, .onboarding-reveal *, .added-badge { animation: none !important; }
   .thinking-brain .brand-mark, .thinking-brain > i, .thinking-dots i { animation-duration: 3s; }
 }
+.axis-name { color: #13838e; font-weight: 700; }
+.axis-mark { display: inline-grid; place-items: center; flex: none; color: #fff; background: linear-gradient(135deg, #1bb5c4, #13838e); border-radius: 50%; box-shadow: 0 2px 6px rgba(19,131,142,.25); }
+.axis-mark.sm { width: 17px; height: 17px; }.axis-mark.sm svg { width: 12px; height: 12px; }
+.axis-mark.md { width: 34px; height: 34px; border-radius: 11px; }.axis-mark.md svg { width: 21px; height: 21px; }
+.analysis-card.reply b, .week-summary b { color: #13838e; }
+.axis-card { display: flex; gap: 11px; align-items: flex-start; margin: 0 0 22px; padding: 14px; border: 1px solid #c9eef2; border-radius: 14px; background: linear-gradient(135deg, #f4fdfe, #eaf8fa); animation: step-up .45s ease both; }
+.axis-card b { display: block; font-size: 11px; color: #13838e; margin-bottom: 4px; }
+.axis-card p { margin: 0; color: #3d4a57; font-size: 12px; line-height: 1.5; }
+.axis-card.waiting p { color: #7a9aa0; }

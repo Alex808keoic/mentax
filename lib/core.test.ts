@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { addDays, currentStreak, dayKey, formatLong, weekDays, weekStart } from './dates'
 import { deriveTitle, localIdeasFor, migrateEntry, stageOf } from './entries'
-import { cleanClosing, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
+import { cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
 import { parseBackup } from './backup'
 import { parseJSONOutput, readCloudflareConfig } from './ai/cloudflare'
 import { closePrompt, reflectPrompt } from './ai/prompts'
@@ -89,6 +89,8 @@ describe('contrato IA', () => {
     assert.ok(parseAIRequest({ task: 'close', input: { entry, reflexion: 'r', qa, ...memory } }))
     assert.ok(parseAIRequest({ task: 'ideas', input: { today: '2024-05-21', recent: [entry], ...memory } }))
     assert.ok(parseAIRequest({ task: 'week', input: { weekStart: '2024-05-20', entries: [entry], ...memory } }))
+    assert.ok(parseAIRequest({ task: 'greeting', input: { today: '2024-05-21', weekday: 'martes', recent: [entry], ...memory } }))
+    assert.equal(parseAIRequest({ task: 'greeting', input: { today: '2024-05-21', recent: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'reflect', input: { weekday: 'lunes', entry: { ...entry, text: '  ' }, recent: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'close', input: { entry, reflexion: 'r', qa: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'week', input: { weekStart: '2024-05-20', entries: [], ...memory } }), null)
@@ -164,5 +166,13 @@ describe('copia de seguridad', () => {
     assert.throws(() => parseBackup(JSON.stringify({ ...valid, app: 'otra' })), /Mentax/)
     assert.throws(() => parseBackup(JSON.stringify({ ...valid, version: 99 })), /más nueva/)
     assert.throws(() => parseBackup(JSON.stringify({ ...valid, data: { ...valid.data, goals: 'x' } })), /dañada/)
+  })
+})
+
+describe('saludo de Axis', () => {
+  it('limpia el mensaje y descarta respuestas vacías', () => {
+    assert.equal(cleanGreeting({ mensaje: '  ¿Cómo fue la charla con tu hermana?  ' }), '¿Cómo fue la charla con tu hermana?')
+    assert.equal(cleanGreeting({ mensaje: '' }), null)
+    assert.equal(cleanGreeting(null), null)
   })
 })
