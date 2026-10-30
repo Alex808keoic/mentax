@@ -222,3 +222,48 @@ button:disabled { cursor: default; opacity: .55; }
 .about-row { border: 1px solid #eeeef4; border-radius: 13px; padding: 13px 12px; margin-bottom: 26px; }
 .about-row b small { display: block; color: var(--muted); font-size: 9.5px; font-weight: 400; margin-top: 3px; }
 .about-card > p { color: var(--muted); font-size: 11px; line-height: 1.55; margin: -4px 0 12px; }
+
+/* Onboarding: transición entre preguntas */
+.onboarding-step { animation: step-forward .32s cubic-bezier(.2, .7, .3, 1) both; }
+.onboarding-step.back { animation-name: step-back; }
+.screen:has(> .onboarding-step) { overflow-x: clip; }
+@keyframes step-forward { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes step-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+
+/* Onboarding: Mentax pensando al terminar */
+.thinking { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 28px; }
+.thinking-brain { position: relative; display: grid; place-items: center; width: 150px; height: 150px; margin-bottom: 30px; }
+.thinking-brain .brand-mark { width: 92px; height: 92px; border-radius: 0; overflow: visible; animation: brain-think 1.6s ease-in-out infinite; }
+.thinking-brain > i { position: absolute; inset: 22px; border-radius: 50%; border: 2px solid #1bb5c4; opacity: 0; animation: brain-wave 2.4s ease-out infinite; }
+.thinking-brain > i + i { animation-delay: 1.2s; }
+.thinking h2 { font-size: 19px; letter-spacing: -.03em; margin: 0 0 10px; }
+.thinking-phrase { color: var(--muted); font-size: 12px; margin: 0; animation: step-forward .35s ease both; }
+.thinking-dots i { font-style: normal; animation: dot-blink 1.2s infinite; }
+.thinking-dots i:nth-child(2) { animation-delay: .2s; }
+.thinking-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes brain-think { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(27, 181, 196, 0)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(27, 181, 196, .55)); } }
+@keyframes brain-wave { from { transform: scale(.7); opacity: .6; } to { transform: scale(1.35); opacity: 0; } }
+@keyframes dot-blink { 0%, 100% { opacity: .2; } 40% { opacity: 1; } }
+
+/* Onboarding: lo que Mentax ha entendido */
+.onboarding-reveal .onboarding-hero .brand-mark { animation: brain-land .5s cubic-bezier(.2, .8, .3, 1.3) both; }
+.onboarding-reveal .onboarding-hero h1, .onboarding-reveal .about-reading, .onboarding-reveal .goal-suggest { animation: step-up .45s ease both; }
+.onboarding-reveal .about-reading { animation-delay: .12s; }
+.onboarding-reveal .goal-suggest { animation-delay: .24s; }
+@keyframes brain-land { from { opacity: 0; transform: scale(1.5); } to { opacity: 1; transform: none; } }
+@keyframes step-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.about-reading { border: 1px solid #c9eef2; background: linear-gradient(135deg, #f4fdfe, #eaf8fa); border-radius: 14px; padding: 15px; margin: 6px 0 12px; }
+.about-reading b { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #13838e; }
+.about-reading p { margin: 8px 0 0; color: #3f5558; font-size: 12px; line-height: 1.65; }
+
+/* Objetivo propuesto ya añadido: se queda, en verde */
+.goal-suggest-row { transition: background .25s, border-color .25s; }
+.goal-suggest-row.added { background: #ecf9f1; border-top-color: #d3efdf; border-radius: 10px; padding-left: 9px; padding-right: 9px; }
+.goal-suggest-row.added span { color: #23764b; }
+.goal-suggest-row.added span small { color: #4f9a72; }
+.added-badge { display: inline-flex; align-items: center; gap: 3px; font-style: normal; border-radius: 9px; padding: 6px 9px; background: #45b88d; color: #fff; font-size: 10px; font-weight: 750; animation: brain-land .3s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-step, .thinking-phrase, .onboarding-reveal *, .added-badge { animation: none !important; }
+  .thinking-brain .brand-mark, .thinking-brain > i, .thinking-dots i { animation-duration: 3s; }
+}

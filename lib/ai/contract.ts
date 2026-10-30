@@ -46,15 +46,15 @@ export interface WeekInput extends MemoryContext {
   entries: ContextEntry[]
 }
 
-/** Proponer objetivos a partir de lo que contó en el onboarding (`perfil`). */
-export type GoalsInput = MemoryContext & { perfil: string }
+/** Al terminar el onboarding: qué ha entendido Mentax de la persona (`perfil`) y objetivos para empezar. */
+export type AboutInput = MemoryContext & { perfil: string }
 
 export type AIRequestBody =
   | { task: 'reflect'; input: ReflectInput }
   | { task: 'close'; input: CloseInput }
   | { task: 'ideas'; input: IdeasInput }
   | { task: 'week'; input: WeekInput }
-  | { task: 'goals'; input: GoalsInput }
+  | { task: 'about'; input: AboutInput }
 
 export type AITask = AIRequestBody['task']
 
@@ -97,7 +97,7 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
       return typeof input.today === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'week':
       return typeof input.weekStart === 'string' && isEntryList(input.entries) && (input.entries as unknown[]).length > 0 ? (raw as AIRequestBody) : null
-    case 'goals':
+    case 'about':
       return typeof input.perfil === 'string' && input.perfil.trim() !== '' ? (raw as AIRequestBody) : null
     default:
       return null
@@ -174,8 +174,16 @@ export function cleanClosing(raw: unknown, now: number = Date.now()): CloseResul
   return { comentario, aprendizaje: str(raw.aprendizaje, 300), ayudaProfesional: str(raw.ayudaProfesional, 600) || null, createdAt: now, avances: cleanProgress(raw.avances) }
 }
 
-export function cleanGoalProposals(raw: unknown): DetectedGoal[] | null {
-  return isObject(raw) ? cleanDetectedGoals(raw.objetivos).slice(0, 3) : null
+export interface AboutReading {
+  /** Lo que Mentax ha entendido de la persona, hablándole de tú. */
+  reflexion: string
+  objetivos: DetectedGoal[]
+}
+
+export function cleanAboutReading(raw: unknown): AboutReading | null {
+  if (!isObject(raw)) return null
+  const reflexion = str(raw.reflexion, 900)
+  return reflexion ? { reflexion, objetivos: cleanDetectedGoals(raw.objetivos).slice(0, 3) } : null
 }
 
 export function cleanIdeas(raw: unknown): string[] | null {

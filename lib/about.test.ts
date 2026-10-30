@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { describeAbout, EMPTY_ABOUT } from './about'
-import { cleanGoalProposals, parseAIRequest } from './ai/contract'
-import { goalsPrompt, reflectPrompt } from './ai/prompts'
+import { cleanAboutReading, parseAIRequest } from './ai/contract'
+import { aboutPrompt, reflectPrompt } from './ai/prompts'
 import { buildBackup, parseBackup, restoreBackup } from './backup'
 import { clearAll, getAbout, saveAbout } from './db'
 import type { AboutMe } from './types'
@@ -57,12 +57,13 @@ describe('sobre ti', () => {
     assert.doesNotMatch(reflectPrompt({ ...input, perfil: undefined }).user, /Sobre la persona/)
   })
 
-  it('propone objetivos a partir del perfil: exige perfil y limpia la salida', () => {
+  it('al terminar, reflexiona sobre la persona y propone objetivos: exige perfil y limpia la salida', () => {
     const input = { goals: [], learnings: [], perfil: describeAbout(about)! }
-    assert.ok(parseAIRequest({ task: 'goals', input }))
-    assert.equal(parseAIRequest({ task: 'goals', input: { ...input, perfil: '  ' } }), null)
-    assert.match(goalsPrompt(input).user, /<datos>[\s\S]*tres meses[\s\S]*<\/datos>/)
-    const goals = cleanGoalProposals({
+    assert.ok(parseAIRequest({ task: 'about', input }))
+    assert.equal(parseAIRequest({ task: 'about', input: { ...input, perfil: '  ' } }), null)
+    assert.match(aboutPrompt(input).user, /<datos>[\s\S]*tres meses[\s\S]*<\/datos>/)
+    const reading = cleanAboutReading({
+      reflexion: '  Estás en un momento de cambio.  ',
       objetivos: [
         { titulo: 'Acostarme antes de las 23:30', frecuencia: 'diaria', veces: 1 },
         { titulo: 'acostarme antes de las 23:30', frecuencia: 'diaria', veces: 1 },
@@ -71,8 +72,11 @@ describe('sobre ti', () => {
         { titulo: 'Ser más paciente', frecuencia: 'ninguna', veces: 1 },
       ],
     })
-    assert.deepEqual(goals?.map((g) => g.title), ['Acostarme antes de las 23:30', 'Quedar con amigos', 'Leer 5 libros'])
-    assert.deepEqual(goals?.[0].tracking, { kind: 'daily' })
-    assert.equal(cleanGoalProposals('nada'), null)
+    assert.equal(reading?.reflexion, 'Estás en un momento de cambio.')
+    assert.deepEqual(reading?.objetivos.map((g) => g.title), ['Acostarme antes de las 23:30', 'Quedar con amigos', 'Leer 5 libros'])
+    assert.deepEqual(reading?.objetivos[0].tracking, { kind: 'daily' })
+    assert.deepEqual(cleanAboutReading({ reflexion: 'Hola', objetivos: 'x' })?.objetivos, [])
+    assert.equal(cleanAboutReading({ objetivos: [] }), null)
+    assert.equal(cleanAboutReading('nada'), null)
   })
 })

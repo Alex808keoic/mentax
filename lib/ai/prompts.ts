@@ -1,7 +1,7 @@
 /**
  * Instrucciones y esquemas JSON de cada tarea de IA. Solo se usan en el servidor.
  */
-import type { CloseInput, ContextEntry, GoalsInput, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
+import type { AboutInput, CloseInput, ContextEntry, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
 
 export interface PromptSpec {
   system: string
@@ -184,18 +184,21 @@ ${formatMemory(input)}
   }
 }
 
-export function goalsPrompt(input: GoalsInput): PromptSpec {
+export function aboutPrompt(input: AboutInput): PromptSpec {
   return {
     system: `${PERSONA}
 
-Tu tarea: la persona acaba de contar quién es al empezar a usar Mentax. Fijándote sobre todo en lo que le gustaría que hubiera cambiado dentro de tres meses (y en las partes de su vida que quiere cuidar), propón en "objetivos" de 1 a 3 objetivos pequeños, concretos y realistas que le acerquen a ese cambio, del más al menos importante. Mejor hábitos que se puedan medir ("Acostarme antes de las 23:30 cada día", "Quedar con amigos 1 vez por semana") que metas vagas. Para cada uno:
+Tu tarea: la persona acaba de contar quién es al empezar a usar Mentax. Devuelve:
+- "reflexion": lo que has entendido de ella (3-4 frases), hablándole de tú y adaptándote a cómo prefiere que le hables. Conecta lo que busca, el momento en que está y lo que le gustaría cambiar, y termina con una frase de ánimo sencilla para empezar. Sin repetir sus respuestas como una lista, sin diagnósticos y sin hablar de ti en primera persona.
+- "objetivos": fijándote sobre todo en lo que le gustaría que hubiera cambiado dentro de tres meses (y en las partes de su vida que quiere cuidar), de 1 a 3 objetivos pequeños, concretos y realistas que le acerquen a ese cambio, del más al menos importante. Mejor hábitos que se puedan medir ("Acostarme antes de las 23:30 cada día", "Quedar con amigos 1 vez por semana") que metas vagas. Para cada uno:
 ${GOAL_FIELDS}
-No incluyas los que ya están en sus objetivos activos ni otros parecidos. No te inventes problemas que no ha contado; si no hay base para proponer nada, lista vacía.
+  No incluyas los que ya están en sus objetivos activos ni otros parecidos. No te inventes problemas que no ha contado; si no hay base para proponer nada, lista vacía.
+Si lo que cuenta muestra sufrimiento intenso, desesperanza o ideas de hacerse daño, en "reflexion" recomienda con delicadeza hablar con un profesional de la salud mental o con alguien de confianza; si hay riesgo para la vida, menciona el 024 (gratuito, 24 h) o el 112 si es una emergencia.
 Responde solo con JSON.`,
     user: `<datos>
 ${formatMemory(input)}
 </datos>`,
-    schema: { type: 'object', additionalProperties: false, required: ['objetivos'], properties: { objetivos: detectedGoalsSchema } },
-    maxOutputTokens: 500,
+    schema: { type: 'object', additionalProperties: false, required: ['reflexion', 'objetivos'], properties: { reflexion: { type: 'string' }, objetivos: detectedGoalsSchema } },
+    maxOutputTokens: 800,
   }
 }

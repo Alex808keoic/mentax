@@ -7,8 +7,8 @@ import { describeAbout } from '../about'
 import { applyEntryProgress, db, getAbout, saveAnswersAndClosing, saveMentaxReflection } from '../db'
 import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
 import { localIdeasFor } from '../entries'
-import type { AboutMe, DayKey, DetectedGoal, Entry, WeekSummary } from '../types'
-import type { AIErrorCode, AIRequestBody, AIResponse, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
+import type { AboutMe, DayKey, Entry, WeekSummary } from '../types'
+import type { AboutReading, AIErrorCode, AIRequestBody, AIResponse, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
 
 export class AIUnavailableError extends Error {
   constructor(readonly code: AIErrorCode) {
@@ -163,14 +163,14 @@ export async function summarizeWeek(start: DayKey): Promise<WeekSummary> {
   return summary
 }
 
-// ── Objetivos a partir de «Sobre ti» ────────────────────
+// ── Al terminar «Sobre ti» ──────────────────────────────
 
-/** Objetivos que Mentax propone según lo que la persona acaba de contar (aún sin guardar). */
-export async function proposeGoals(about: AboutMe): Promise<DetectedGoal[]> {
+/** Lo que Mentax ha entendido de la persona y objetivos para empezar. Null si no contó nada. */
+export async function readAbout(about: AboutMe): Promise<AboutReading | null> {
   const perfil = describeAbout(about)
-  if (!perfil || !about.change.trim()) return []
+  if (!perfil) return null
   const context = await memory(dayKey())
-  const goals = await callAI<DetectedGoal[]>({ task: 'goals', input: { ...context, perfil: clip(perfil, 2400) } }, 20_000)
+  const reading = await callAI<AboutReading>({ task: 'about', input: { ...context, perfil: clip(perfil, 2400) } }, 25_000)
   // Por si la IA repite algo que ya tiene.
-  return goals.filter((g) => !context.goals.some((x) => isSimilarGoal(x.title, g.title)))
+  return { ...reading, objetivos: reading.objetivos.filter((g) => !context.goals.some((x) => isSimilarGoal(x.title, g.title))) }
 }
