@@ -19,6 +19,8 @@ export interface MemoryContext {
   /** `ref` identifica el objetivo en esta petición («g1»…), para que la IA señale avances. */
   goals: { ref: string; title: string; progress: number; thisWeek: boolean; seguimiento: string }[]
   learnings: string[]
+  /** Lo que contó de sí misma en el onboarding (`describeAbout`). */
+  perfil?: string
 }
 
 export interface ReflectInput extends MemoryContext {
@@ -44,11 +46,15 @@ export interface WeekInput extends MemoryContext {
   entries: ContextEntry[]
 }
 
+/** Proponer objetivos a partir de lo que contó en el onboarding (`perfil`). */
+export type GoalsInput = MemoryContext & { perfil: string }
+
 export type AIRequestBody =
   | { task: 'reflect'; input: ReflectInput }
   | { task: 'close'; input: CloseInput }
   | { task: 'ideas'; input: IdeasInput }
   | { task: 'week'; input: WeekInput }
+  | { task: 'goals'; input: GoalsInput }
 
 export type AITask = AIRequestBody['task']
 
@@ -73,7 +79,8 @@ const isMemory = (v: Record<string, unknown>) =>
   v.goals.length <= 20 &&
   v.goals.every((g) => isObject(g) && typeof g.ref === 'string' && typeof g.title === 'string' && typeof g.progress === 'number' && typeof g.seguimiento === 'string') &&
   Array.isArray(v.learnings) &&
-  v.learnings.every((l) => typeof l === 'string')
+  v.learnings.every((l) => typeof l === 'string') &&
+  (v.perfil === undefined || (typeof v.perfil === 'string' && v.perfil.length <= 2500))
 
 const isEntryList = (v: unknown) => Array.isArray(v) && v.length <= 14 && v.every(isEntry)
 
@@ -90,6 +97,8 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
       return typeof input.today === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'week':
       return typeof input.weekStart === 'string' && isEntryList(input.entries) && (input.entries as unknown[]).length > 0 ? (raw as AIRequestBody) : null
+    case 'goals':
+      return typeof input.perfil === 'string' && input.perfil.trim() !== '' ? (raw as AIRequestBody) : null
     default:
       return null
   }
@@ -163,6 +172,10 @@ export function cleanClosing(raw: unknown, now: number = Date.now()): CloseResul
   const comentario = str(raw.comentario, 1500)
   if (!comentario) return null
   return { comentario, aprendizaje: str(raw.aprendizaje, 300), ayudaProfesional: str(raw.ayudaProfesional, 600) || null, createdAt: now, avances: cleanProgress(raw.avances) }
+}
+
+export function cleanGoalProposals(raw: unknown): DetectedGoal[] | null {
+  return isObject(raw) ? cleanDetectedGoals(raw.objetivos).slice(0, 3) : null
 }
 
 export function cleanIdeas(raw: unknown): string[] | null {

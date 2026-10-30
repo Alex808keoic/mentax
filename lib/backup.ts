@@ -4,9 +4,9 @@
  */
 import { db } from './db'
 import { migrateEntry } from './entries'
-import type { Entry, Goal, Learning, Profile, WeekPlan, WeekSummary } from './types'
+import type { AboutMe, Entry, Goal, Learning, Profile, WeekPlan, WeekSummary } from './types'
 
-export const BACKUP_VERSION = 3
+export const BACKUP_VERSION = 4
 
 export interface Backup {
   app: 'mentax'
@@ -20,12 +20,15 @@ export interface Backup {
     weekSummaries: WeekSummary[]
     /** Cierres semanales (desde la versión 3). */
     weekPlans?: WeekPlan[]
+    /** Lo que contó en el onboarding (desde la versión 4). */
+    about?: AboutMe | null
   }
 }
 
 export async function buildBackup(now: Date = new Date()): Promise<Backup> {
-  const [profile, reflections, goals, learnings, weekSummaries, weekPlans] = await Promise.all([
+  const [profile, about, reflections, goals, learnings, weekSummaries, weekPlans] = await Promise.all([
     db.settings.get('profile'),
+    db.settings.get('about'),
     db.reflections.toArray(),
     db.goals.toArray(),
     db.learnings.toArray(),
@@ -36,7 +39,7 @@ export async function buildBackup(now: Date = new Date()): Promise<Backup> {
     app: 'mentax',
     version: BACKUP_VERSION,
     exportedAt: now.toISOString(),
-    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries, weekPlans },
+    data: { profile: (profile?.value as Profile | undefined) ?? null, reflections, goals, learnings, weekSummaries, weekPlans, about: (about?.value as AboutMe | undefined) ?? null },
   }
 }
 
@@ -62,6 +65,7 @@ export function parseBackup(text: string): Backup {
   }
   const goals = data.goals as Record<string, unknown>[]
   if (!goals.every((g) => typeof g.id === 'string' && typeof g.title === 'string')) throw new Error('La copia de seguridad está incompleta o dañada.')
+  if (data.about !== undefined && data.about !== null && !isObject(data.about)) throw new Error('La copia de seguridad está incompleta o dañada.')
   if (data.weekPlans !== undefined && (!Array.isArray(data.weekPlans) || !data.weekPlans.every((p) => isObject(p) && typeof p.weekStart === 'string'))) {
     throw new Error('La copia de seguridad está incompleta o dañada.')
   }
@@ -70,10 +74,11 @@ export function parseBackup(text: string): Backup {
 
 /** Sustituye todos los datos actuales por los de la copia. */
 export async function restoreBackup(backup: Backup): Promise<void> {
-  const { profile, reflections, goals, learnings, weekSummaries, weekPlans = [] } = backup.data
+  const { profile, reflections, goals, learnings, weekSummaries, weekPlans = [], about } = backup.data
   await db.transaction('rw', [db.reflections, db.goals, db.learnings, db.weekSummaries, db.weekPlans, db.settings, db.dailyIdeas], async () => {
     await Promise.all([db.reflections.clear(), db.goals.clear(), db.learnings.clear(), db.weekSummaries.clear(), db.weekPlans.clear(), db.settings.clear(), db.dailyIdeas.clear()])
     if (profile) await db.settings.put({ key: 'profile', value: profile })
+    if (about) await db.settings.put({ key: 'about', value: about })
     // Las copias de la primera versión traen reflexiones guiadas: se convierten al diario.
     await db.reflections.bulkPut(reflections.map(migrateEntry))
     await db.goals.bulkPut(goals)

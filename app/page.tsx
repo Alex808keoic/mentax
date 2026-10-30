@@ -10,6 +10,7 @@ import { Week } from '@/components/mentax/screens/week'
 import { WeekReview } from '@/components/mentax/screens/week-review'
 import { GoalEditor, Goals } from '@/components/mentax/screens/goals'
 import { Profile } from '@/components/mentax/screens/profile'
+import { Onboarding } from '@/components/mentax/screens/onboarding'
 import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
 
 export default function Page() {
@@ -42,8 +43,11 @@ export default function Page() {
 
   if (!data) return <main className="app-shell"><div className="phone-frame"><div className="screen"><Loading text="Cargando…" /></div></div></main>
 
-  const { screen, id } = route
   const props = { data, navigate, notify }
+  // La primera vez (sin onboarding ni entradas), Mentax pregunta quién eres antes de nada.
+  if (!data.about.completedAt && data.entries.length === 0) return <main className="app-shell"><div className="phone-frame"><Onboarding {...props} /></div></main>
+
+  const { screen, id } = route
   const content = {
     home: <Home {...props} />,
     write: <Write key={id ?? 'new'} editId={id} today={data.today} navigate={navigate} notify={notify} />,
@@ -54,6 +58,7 @@ export default function Page() {
     goal: <GoalEditor key={id ?? 'new'} goal={id ? data.goals.find((g) => g.id === id) : undefined} {...props} />,
     profile: <Profile {...props} />,
     weekReview: <WeekReview key={id} weekStart={id ?? ''} {...props} />,
+    about: <Onboarding editing returnTo={id === 'home' ? 'home' : 'profile'} {...props} />,
   }[screen]
 
   return <main className="app-shell"><div className="phone-frame">{content}{TAB_SCREENS.includes(screen) && <BottomNav active={screen} navigate={navigate} />}{toast && <div className="toast" role="status">{toast}</div>}</div></main>

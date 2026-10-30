@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, CircleHelp, Download, Heart, Lightbulb, Pencil, Trash2, Upload, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, CircleHelp, Download, Heart, Lightbulb, Pencil, Sparkles, Trash2, Upload, X } from 'lucide-react'
 import { backupFileName, buildBackup, parseBackup, restoreBackup } from '@/lib/backup'
 import { clearAll, deleteLearning, saveProfile } from '@/lib/db'
 import type { AppData } from '../data'
@@ -69,6 +69,8 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
 
     <div className="profile-stats"><div><strong>{data.streak}</strong><small>Días de racha</small></div><div><strong>{data.entries.length}</strong><small>Entradas</small></div><div><strong>{activeGoals}</strong><small>Objetivos</small></div></div>
 
+    <button className="setting-row about-row" onClick={() => navigate('about')}><span><Sparkles size={17} /></span><b>Sobre ti<small>{data.about.motives.length || data.about.tone ? 'Lo que Mentax sabe de ti para acompañarte mejor' : 'Cuéntale a Mentax quién eres'}</small></b><ChevronRight size={16} /></button>
+
     <h2 className="section-title">Mis aprendizajes</h2>
     {data.learnings.length ? <div className="insight-card learnings">{data.learnings.map((l) => <div className="insight" key={l.id}><span className="insight-icon violet"><Lightbulb size={15} /></span><p>{l.text}</p><button className="icon-button small" onClick={() => deleteLearning(l.id)} aria-label="Olvidar aprendizaje"><X size={14} /></button></div>)}</div>
       : <div className="empty-card">Cuando guardes el aprendizaje del día al cerrar una reflexión, aparecerá aquí. Mentax lo tiene en cuenta en los días siguientes.</div>}
@@ -81,7 +83,7 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
 
     <h2 className="section-title settings-title">Preferencias</h2>
     <button className="setting-row" onClick={() => toggle('privacy')} aria-expanded={panel === 'privacy'}><span><Heart size={17} /></span><b>Privacidad y seguridad</b>{panel === 'privacy' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
-    {panel === 'privacy' && <div className="setting-panel"><p>Tu diario, tus objetivos y tus aprendizajes se guardan solo en este dispositivo y navegador. Mentax no tiene cuentas ni servidores con tus datos.</p><p>Cuando envías una entrada a Mentax, respondes a sus preguntas, pides ideas o el resumen semanal, se envía a la IA solo el texto necesario para responder (la entrada, algunas entradas recientes, tus objetivos activos y tus aprendizajes guardados). No se almacena.</p><p>Si borras los datos del navegador, perderás tu diario: exporta una copia de seguridad de vez en cuando.</p></div>}
+    {panel === 'privacy' && <div className="setting-panel"><p>Tu diario, tus objetivos y tus aprendizajes se guardan solo en este dispositivo y navegador. Mentax no tiene cuentas ni servidores con tus datos.</p><p>Cuando envías una entrada a Mentax, respondes a sus preguntas, pides ideas o el resumen semanal, se envía a la IA solo el texto necesario para responder (la entrada, algunas entradas recientes, tus objetivos activos, tus aprendizajes guardados y lo que contaste sobre ti). No se almacena.</p><p>Si borras los datos del navegador, perderás tu diario: exporta una copia de seguridad de vez en cuando.</p></div>}
     <button className="setting-row" onClick={() => toggle('help')} aria-expanded={panel === 'help'}><span><CircleHelp size={17} /></span><b>Ayuda y soporte</b>{panel === 'help' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
     {panel === 'help' && <div className="setting-panel"><p><b>Tu diario:</b> cada día escribe libremente cómo te ha ido. Si no sabes por dónde empezar, pide una idea.</p><p><b>Mentax reflexiona contigo:</b> lee tu entrada, te da su reflexión y te hace un par de preguntas para profundizar. Cuando respondes, cierra el día con un comentario y un aprendizaje que puedes guardar.</p><p><b>Objetivos:</b> si escribes lo que quieres conseguir («esta semana quiero…»), Mentax te propone añadirlo a tus objetivos y el fin de semana te pregunta cómo ha ido.</p><p><b>Mi semana:</b> tu ánimo, tu constancia y un resumen de aprendizajes.</p><p>Mentax es una herramienta de apoyo para reflexionar; no sustituye tu criterio ni la ayuda de un profesional cuando la necesites.</p></div>}
     <button className="setting-row danger" onClick={clearEverything} onBlur={() => setConfirmClear(false)}><span><Trash2 size={17} /></span><b>{confirmClear ? 'Pulsa otra vez para borrarlo todo' : 'Borrar todos los datos'}</b><ChevronRight size={16} /></button>

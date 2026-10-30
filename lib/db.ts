@@ -3,9 +3,10 @@
  * salvo lo que se envía a la IA al pedir una reflexión o un resumen.
  */
 import Dexie, { type Table } from 'dexie'
+import { EMPTY_ABOUT } from './about'
 import { deriveTitle, migrateEntry } from './entries'
 import { guessTracking, MANUAL, normalizeTracking, trackingOf, withCheckin } from './goals'
-import type { DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
+import type { AboutMe, DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
 
 interface SettingEntry {
   key: string
@@ -62,6 +63,17 @@ export async function getProfile(): Promise<Profile> {
 
 export async function saveProfile(profile: Profile): Promise<void> {
   await db.settings.put({ key: 'profile', value: { name: profile.name.trim(), tagline: profile.tagline.trim() } })
+}
+
+// ── Sobre ti (onboarding) ───────────────────────────────
+
+export async function getAbout(): Promise<AboutMe> {
+  const entry = await db.settings.get('about')
+  return { ...EMPTY_ABOUT, ...(entry?.value as Partial<AboutMe> | undefined) }
+}
+
+export async function saveAbout(about: AboutMe): Promise<void> {
+  await db.settings.put({ key: 'about', value: { ...about, onMind: about.onMind.trim(), change: about.change.trim(), completedAt: about.completedAt ?? Date.now() } })
 }
 
 // ── Diario ──────────────────────────────────────────────

@@ -2,11 +2,12 @@
  * Lado cliente de la IA: reúne el contexto desde la base local, llama a
  * /api/ai y guarda el resultado. Sin IA, el diario sigue funcionando.
  */
-import { addDays, parseDayKey, weekDays, weekStart } from '../dates'
-import { applyEntryProgress, db, saveAnswersAndClosing, saveMentaxReflection } from '../db'
-import { describeTracking, goalStatus, trackingOf } from '../goals'
+import { addDays, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
+import { describeAbout } from '../about'
+import { applyEntryProgress, db, getAbout, saveAnswersAndClosing, saveMentaxReflection } from '../db'
+import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
 import { localIdeasFor } from '../entries'
-import type { DayKey, Entry, WeekSummary } from '../types'
+import type { AboutMe, DayKey, DetectedGoal, Entry, WeekSummary } from '../types'
 import type { AIErrorCode, AIRequestBody, AIResponse, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
 
 export class AIUnavailableError extends Error {
@@ -56,14 +57,16 @@ function toContext(e: Entry, maxText: number, maxAnswer = 300): ContextEntry {
 /** Objetivos y aprendizajes para la IA, y a qué objetivo corresponde cada `ref` («g1»…). */
 async function memoryWithRefs(today: DayKey): Promise<{ context: MemoryContext; refs: Map<string, string> }> {
   const thisWeek = parseDayKey(weekStart(today)).getTime()
-  const [goals, learnings] = await Promise.all([db.goals.where('status').equals('active').toArray(), db.learnings.orderBy('createdAt').reverse().limit(10).toArray()])
+  const [goals, learnings, about] = await Promise.all([db.goals.where('status').equals('active').toArray(), db.learnings.orderBy('createdAt').reverse().limit(10).toArray(), getAbout()])
   const active = goals.slice(0, 15)
   const refs = new Map(active.map((g, i) => [`g${i + 1}`, g.id]))
+  const perfil = describeAbout(about)
   return {
     refs,
     context: {
       goals: active.map((g, i) => ({ ref: `g${i + 1}`, title: g.title, progress: goalStatus(g, today).percent, thisWeek: g.createdAt >= thisWeek, seguimiento: describeTracking(trackingOf(g)) })),
       learnings: learnings.map((l) => l.text),
+      ...(perfil ? { perfil: clip(perfil, 2400) } : {}),
     },
   }
 }
@@ -158,4 +161,16 @@ export async function summarizeWeek(start: DayKey): Promise<WeekSummary> {
   const summary: WeekSummary = { weekStart: start, ...result, reflectionCount: entries.length, createdAt: Date.now() }
   await db.weekSummaries.put(summary)
   return summary
+}
+
+// ── Objetivos a partir de «Sobre ti» ────────────────────
+
+/** Objetivos que Mentax propone según lo que la persona acaba de contar (aún sin guardar). */
+export async function proposeGoals(about: AboutMe): Promise<DetectedGoal[]> {
+  const perfil = describeAbout(about)
+  if (!perfil || !about.change.trim()) return []
+  const context = await memory(dayKey())
+  const goals = await callAI<DetectedGoal[]>({ task: 'goals', input: { ...context, perfil: clip(perfil, 2400) } }, 20_000)
+  // Por si la IA repite algo que ya tiene.
+  return goals.filter((g) => !context.goals.some((x) => isSimilarGoal(x.title, g.title)))
 }

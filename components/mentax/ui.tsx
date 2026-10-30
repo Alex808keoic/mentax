@@ -44,8 +44,8 @@ export const MOODS: { value: Mood; emoji: string; label: string }[] = [
 
 export const moodOf = (value?: Mood) => MOODS.find((m) => m.value === value)
 
-export function MoodPicker({ value, onChange }: { value?: Mood; onChange: (mood: Mood) => void }) {
-  return <div className="mood-picker"><b>¿Cómo te sientes hoy?</b><div>{MOODS.map((m) => <button type="button" key={m.value} className={value === m.value ? 'selected' : ''} onClick={() => onChange(m.value)} aria-pressed={value === m.value}><span>{m.emoji}</span><small>{m.label}</small></button>)}</div></div>
+export function MoodPicker({ value, onChange, label = '¿Cómo te sientes hoy?' }: { value?: Mood; onChange: (mood: Mood) => void; label?: string }) {
+  return <div className="mood-picker">{label && <b>{label}</b>}<div>{MOODS.map((m) => <button type="button" key={m.value} className={value === m.value ? 'selected' : ''} onClick={() => onChange(m.value)} aria-pressed={value === m.value}><span>{m.emoji}</span><small>{m.label}</small></button>)}</div></div>
 }
 
 export function Loading({ text }: { text: string }) {

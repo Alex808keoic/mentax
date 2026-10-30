@@ -132,3 +132,24 @@ export interface Profile {
   name: string
   tagline: string
 }
+
+/** Lo que la persona cuenta de sí misma en el onboarding. Ids de las opciones de `lib/about.ts`. */
+export interface AboutMe {
+  /** Qué busca en Mentax (hasta tres). */
+  motives: string[]
+  age?: string
+  occupation?: string
+  /** Partes de su vida que quiere cuidar (hasta tres). */
+  areas: string[]
+  /** Cómo se sentía últimamente al empezar. */
+  mood?: Mood
+  onMind: string
+  /** Qué le gustaría que hubiera cambiado dentro de tres meses. */
+  change: string
+  /** Qué le ayuda cuando tiene un mal día. */
+  supports: string[]
+  /** Cómo prefiere que le hable Mentax. */
+  tone?: string
+  /** Cuándo terminó (o saltó) el onboarding; sin él, se le muestra al entrar. */
+  completedAt?: number
+}
