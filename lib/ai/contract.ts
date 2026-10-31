@@ -49,6 +49,12 @@ export interface WeekInput extends MemoryContext {
 /** Al terminar el onboarding: qué ha entendido Axis de la persona (`perfil`) y objetivos para empezar. */
 export type AboutInput = MemoryContext & { perfil: string }
 
+/** En el onboarding: la persona dice por qué cree que es importante reflexionar y Axis le cuenta el propósito de Mentax. */
+export interface PurposeInput extends MemoryContext {
+  nombre?: string
+  respuesta: string
+}
+
 /** Saludo diario de Axis en Inicio. */
 export interface GreetingInput extends MemoryContext {
   today: DayKey
@@ -79,6 +85,7 @@ export type AIRequestBody =
   | { task: 'ideas'; input: IdeasInput }
   | { task: 'week'; input: WeekInput }
   | { task: 'about'; input: AboutInput }
+  | { task: 'purpose'; input: PurposeInput }
   | { task: 'greeting'; input: GreetingInput }
   | { task: 'chat'; input: ChatInput }
 
@@ -137,6 +144,8 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
       return typeof input.today === 'string' && typeof input.weekday === 'string' && isChat(input) ? (raw as AIRequestBody) : null
     case 'greeting':
       return typeof input.today === 'string' && typeof input.weekday === 'string' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
+    case 'purpose':
+      return typeof input.respuesta === 'string' && input.respuesta.trim() !== '' && input.respuesta.length <= 1500 && (input.nombre === undefined || typeof input.nombre === 'string') ? (raw as AIRequestBody) : null
     case 'about':
       return typeof input.perfil === 'string' && input.perfil.trim() !== '' ? (raw as AIRequestBody) : null
     default:
@@ -244,6 +253,11 @@ export function cleanWeek(raw: unknown): Pick<WeekSummary, 'resumen' | 'aprendiz
 export function cleanGreeting(raw: unknown): string | null {
   if (!isObject(raw)) return null
   return str(raw.mensaje, 280) || null
+}
+
+export function cleanPurpose(raw: unknown): string | null {
+  if (!isObject(raw)) return null
+  return str(raw.respuesta, 1200) || null
 }
 
 export function cleanChat(raw: unknown): string | null {

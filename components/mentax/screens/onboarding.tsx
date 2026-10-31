@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, Lock, PenLine, Plus, Target, X } from 'lucide-react'
+import { ArrowRight, Check, Lock, PenLine, Plus, Send, Target, X } from 'lucide-react'
 import { AGES, AREAS, describeAbout, EMPTY_ABOUT, MAX_PICKS, MOTIVES, OCCUPATIONS, SUPPORTS, TONES, type AboutOption } from '@/lib/about'
-import { readAbout } from '@/lib/ai/client'
+import { explainPurpose, readAbout } from '@/lib/ai/client'
 import type { AboutReading } from '@/lib/ai/contract'
 import { createGoal, saveAbout, saveProfile } from '@/lib/db'
 import { describeTracking } from '@/lib/goals'
@@ -12,7 +12,7 @@ import type { AppData } from '../data'
 import type { Navigate, Notify, Screen } from '../nav'
 import { AxisMark, Button, Header, Logo, MoodPicker } from '../ui'
 
-const QUESTIONS = ['name', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
+const QUESTIONS = ['name', 'why', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
 type Step = 'welcome' | Question | 'done'
 
@@ -28,6 +28,8 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const [name, setName] = useState(data.profile.name)
   const [about, setAbout] = useState<AboutMe>(data.about)
   const [saving, setSaving] = useState(false)
+  // Respuesta de Axis a «¿por qué reflexionar?»: undefined sin enviar, null pensando.
+  const [purpose, setPurpose] = useState<string | null | undefined>(undefined)
   const set = (patch: Partial<AboutMe>) => setAbout((a) => ({ ...a, ...patch }))
   const go = (to: Step, dir: 'forward' | 'back') => { setDirection(dir); setStep(to) }
 
@@ -37,6 +39,12 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     if (name.trim()) await saveProfile({ ...data.profile, name })
     await saveAbout({ ...about, completedAt: Date.now() })
     then()
+  }
+
+  async function sendWhy() {
+    if (!about.why?.trim() || purpose === null) return
+    setPurpose(null)
+    setPurpose(await explainPurpose(about.why, name))
   }
 
   async function skip() {
@@ -62,6 +70,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const last = index === QUESTIONS.length - 1
   const answered: Record<Question, boolean> = {
     name: !!name.trim(),
+    why: !!about.why?.trim(),
     motives: about.motives.length > 0,
     context: !!(about.age || about.occupation),
     areas: about.areas.length > 0,
@@ -84,6 +93,15 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
         <Intro title="¿Cómo quieres que Axis te llame?" text="Tu nombre o como te guste que te llamen." />
         <label className="field"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={40} autoFocus aria-label="Tu nombre" /></label>
       </form>}
+
+      {step === 'why' && <>
+        <Intro title="Sinceramente, ¿por qué crees que es importante reflexionar?" text="Escríbelo con tus palabras. No hay respuestas buenas ni malas." />
+        {/* Si cambia lo escrito, puede volver a enviarlo. */}
+        <label className="field"><textarea value={about.why ?? ''} onChange={(e) => { set({ why: e.target.value }); if (purpose) setPurpose(undefined) }} placeholder="Ej.: Para entenderme mejor y no ir siempre con el piloto automático." maxLength={1000} disabled={purpose === null} aria-label="Por qué es importante reflexionar" /></label>
+        {purpose === undefined && <Button variant="soft" className="full-button" onClick={sendWhy} disabled={!about.why?.trim()}><Send size={15} /> Enviar</Button>}
+        {purpose === null && <div className="about-reading" role="status"><b><AxisMark /> Axis</b><p className="thinking-phrase">Leyendo lo que has escrito<span className="thinking-dots"><i>.</i><i>.</i><i>.</i></span></p></div>}
+        {purpose && <div className="about-reading" ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}><b><AxisMark /> El propósito de reflexionar</b><p>{purpose}</p></div>}
+      </>}
 
       {step === 'motives' && <>
         <Intro title={`¿Qué te trae por aquí${name.trim() ? `, ${name.trim()}` : ''}?`} text="Elige hasta tres. Así Axis sabrá en qué fijarse al leer tu diario." />

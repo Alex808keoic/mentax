@@ -1,7 +1,7 @@
 /**
  * Instrucciones y esquemas JSON de cada tarea de IA. Solo se usan en el servidor.
  */
-import type { AboutInput, ChatInput, CloseInput, ContextEntry, GreetingInput, IdeasInput, MemoryContext, ReflectInput, WeekInput } from './contract'
+import type { AboutInput, ChatInput, CloseInput, ContextEntry, GreetingInput, IdeasInput, MemoryContext, PurposeInput, ReflectInput, WeekInput } from './contract'
 
 export interface PromptSpec {
   system: string
@@ -202,6 +202,26 @@ ${formatMemory(input)}
 </datos>`,
     schema: { type: 'object', additionalProperties: false, required: ['reflexion', 'objetivos'], properties: { reflexion: { type: 'string' }, objetivos: detectedGoalsSchema } },
     maxOutputTokens: 800,
+  }
+}
+
+export function purposePrompt(input: PurposeInput): PromptSpec {
+  return {
+    system: `${PERSONA}
+
+Tu tarea: la persona está empezando a usar Mentax. Le has preguntado «Sinceramente, ¿por qué crees que es importante reflexionar?» y ha contestado con sus palabras. Devuelve en "respuesta" 4-6 frases, en un solo párrafo, hablándole de tú:
+1. Empieza recogiendo algo concreto de lo que ha dicho (dale la razón en lo que acierta; si su respuesta es escéptica, corta o dice que no lo sabe, acéptalo sin juzgar).
+2. Cuéntale el verdadero propósito de reflexionar en Mentax: no es solo desahogarse, es entender lo que vives para decidir mejor. Escribir cada día pone en orden lo que se piensa y se siente, y con el tiempo deja ver patrones (qué te sube o te baja el ánimo, qué se repite) que en el día a día pasan desapercibidos.
+3. Dile qué resultados puede notar si lo hace con constancia: más claridad, menos agobio al poner nombre a lo que pasa, conocerse mejor, aprender de sus propios días y avanzar en sus objetivos paso a paso. Sin prometer milagros ni citar cifras o estudios concretos.
+4. Termina con una frase breve que le anime a seguir.
+Sin listas, sin saludo inicial y sin hablar de ti en primera persona más de lo necesario. Si lo que cuenta muestra sufrimiento intenso o ideas de hacerse daño, responde con cuidado y recomienda hablar con un profesional o con alguien de confianza; si hay riesgo para la vida, menciona el 024 (gratuito, 24 h) o el 112.
+Responde solo con JSON.`,
+    user: `<datos>
+${input.nombre ? `Nombre: ${input.nombre}
+` : ''}Su respuesta: ${input.respuesta}
+</datos>`,
+    schema: { type: 'object', additionalProperties: false, required: ['respuesta'], properties: { respuesta: { type: 'string' } } },
+    maxOutputTokens: 500,
   }
 }
 

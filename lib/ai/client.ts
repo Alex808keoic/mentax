@@ -176,6 +176,20 @@ export async function readAbout(about: AboutMe): Promise<AboutReading | null> {
   return { ...reading, objetivos: reading.objetivos.filter((g) => !context.goals.some((x) => isSimilarGoal(x.title, g.title))) }
 }
 
+// ── Por qué reflexionar (onboarding) ────────────────────
+
+/** Si la IA no responde, Axis cuenta el propósito con este texto. */
+export const LOCAL_PURPOSE = 'Tiene mucho sentido lo que dices. El propósito de reflexionar en Mentax no es solo desahogarte: es entender lo que vives para decidir mejor. Al escribir cada día pones en orden lo que piensas y sientes, y con el tiempo empiezas a ver patrones que en el día a día pasan desapercibidos: qué te sube el ánimo, qué te agota, qué se repite. Si lo haces con constancia, notarás más claridad, menos agobio al poner nombre a lo que te pasa y que te conoces mejor. Y desde ahí es más fácil avanzar en lo que te importa, paso a paso.'
+
+/** Lo que Axis responde a «¿por qué es importante reflexionar?». */
+export async function explainPurpose(answer: string, name: string): Promise<string> {
+  try {
+    return await callAI<string>({ task: 'purpose', input: { goals: [], learnings: [], respuesta: clip(answer.trim(), 1400), ...(name.trim() ? { nombre: name.trim() } : {}) } }, 25_000)
+  } catch {
+    return LOCAL_PURPOSE
+  }
+}
+
 // ── Saludo diario de Axis ───────────────────────────────
 
 // Si la IA falla, se usa el saludo local y no se vuelve a intentar en esta sesión.

@@ -152,6 +152,8 @@ export interface AboutMe {
   /** Cómo se sentía últimamente al empezar. */
   mood?: Mood
   onMind: string
+  /** Por qué cree que es importante reflexionar, con sus palabras. */
+  why?: string
   /** Qué le gustaría que hubiera cambiado dentro de tres meses. */
   change: string
   /** Qué le ayuda cuando tiene un mal día. */

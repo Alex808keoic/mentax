@@ -88,6 +88,7 @@ export function describeAbout(about: AboutMe): string | null {
   const age = labelOf(AGES, about.age)
   const occupation = labelOf(OCCUPATIONS, about.occupation)
   if (age || occupation) lines.push([age && `Edad: ${age} años`, occupation && `Ahora mismo: ${occupation}`].filter(Boolean).join('. '))
+  if (about.why?.trim()) lines.push(`Por qué cree que es importante reflexionar: ${about.why.trim()}`)
   if (about.motives.length) lines.push(`Busca en Mentax: ${labelsOf(MOTIVES, about.motives).join(', ')}`)
   if (about.areas.length) lines.push(`Quiere cuidar: ${labelsOf(AREAS, about.areas).join(', ')}`)
   if (about.mood) lines.push(`Al empezar decía sentirse últimamente: ${MOOD_WORDS[about.mood - 1]} (${about.mood}/5)`)
