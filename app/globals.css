@@ -315,3 +315,32 @@ button:disabled { cursor: default; opacity: .55; }
 .chat-composer button { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #1bb5c4, #13838e); }
 .chat-note { margin: 7px 0 0; text-align: center; color: #a3a2b2; font-size: 9px; }
 @media (prefers-reduced-motion: reduce) { .bubble, .chat-empty { animation: none; } .bubble.typing i { animation-duration: 2.4s; } }
+
+/* Onboarding: por qué reflexionar (estudios y comparativa) */
+.why-reflect > * { animation: step-up .45s ease both; }
+.why-reflect > :nth-child(2) { animation-delay: .1s; }
+.why-reflect > :nth-child(3) { animation-delay: .2s; }
+.why-chart, .why-compare { border: 1px solid #e3eaeb; background: #fff; border-radius: 14px; padding: 15px; margin: 0 0 12px; }
+.why-chart > b, .why-compare > b { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #13838e; }
+.why-chart h3 { margin: 8px 0 4px; font-size: 14px; line-height: 1.35; color: #24393c; }
+.why-chart > p { margin: 0 0 12px; font-size: 11px; line-height: 1.55; color: #5c6f72; }
+.why-chart > small, .why-study p small { display: block; margin-top: 8px; font-size: 9.5px; color: #8a9a9c; }
+.why-bars { display: flex; flex-direction: column; gap: 8px; }
+.why-bar { display: grid; grid-template-columns: 82px 1fr 40px; align-items: center; gap: 8px; font-size: 10.5px; color: #5c6f72; }
+.why-bar > div { height: 14px; }
+.why-bar i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: #c3cfd1; transform-origin: left; animation: bar-grow .8s .3s ease both; }
+.why-bar.on i { background: #13838e; }
+.why-bar em { font-style: normal; font-weight: 750; color: #24393c; text-align: right; }
+@keyframes bar-grow { from { transform: scaleX(0); } to { transform: none; } }
+.why-studies { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.why-study { display: flex; gap: 12px; align-items: flex-start; border: 1px solid #e3eaeb; background: #fff; border-radius: 14px; padding: 13px 14px; }
+.why-study strong { flex: none; width: 64px; display: flex; flex-direction: column; font-size: 22px; line-height: 1; color: #13838e; }
+.why-study strong small { margin-top: 4px; font-size: 9.5px; font-weight: 600; color: #5c6f72; }
+.why-study p { margin: 0; font-size: 11px; line-height: 1.55; color: #3f5558; }
+.why-compare-head, .why-compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.why-compare-head { margin: 10px 0 2px; font-size: 9.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; color: #8a9a9c; }
+.why-compare-head span:last-child { color: #13838e; }
+.why-compare-row { padding: 8px 0; border-top: 1px solid #eef2f2; font-size: 10.5px; line-height: 1.45; }
+.why-compare-row span:first-child { color: #8a9a9c; }
+.why-compare-row span:last-child { color: #24393c; font-weight: 600; }
+.why-compare-row svg { color: #13838e; vertical-align: -2px; }

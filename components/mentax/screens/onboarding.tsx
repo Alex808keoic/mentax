@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, Lock, PenLine, Plus, Send, Target, X } from 'lucide-react'
+import { ArrowRight, BookOpen, Check, Lock, PenLine, Plus, Send, Target, X } from 'lucide-react'
 import { AGES, AREAS, describeAbout, EMPTY_ABOUT, MAX_PICKS, MOTIVES, OCCUPATIONS, SUPPORTS, TONES, type AboutOption } from '@/lib/about'
 import { explainPurpose, readAbout } from '@/lib/ai/client'
 import type { AboutReading } from '@/lib/ai/contract'
@@ -12,7 +12,8 @@ import type { AppData } from '../data'
 import type { Navigate, Notify, Screen } from '../nav'
 import { AxisMark, Button, Header, Logo, MoodPicker } from '../ui'
 
-const QUESTIONS = ['name', 'why', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
+// «studies» no es una pregunta: es la página de por qué reflexionar funciona.
+const QUESTIONS = ['name', 'why', 'studies', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
 type Step = 'welcome' | Question | 'done'
 
@@ -71,6 +72,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const answered: Record<Question, boolean> = {
     name: !!name.trim(),
     why: !!about.why?.trim(),
+    studies: true,
     motives: about.motives.length > 0,
     context: !!(about.age || about.occupation),
     areas: about.areas.length > 0,
@@ -101,6 +103,11 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
         {purpose === undefined && <Button variant="soft" className="full-button" onClick={sendWhy} disabled={!about.why?.trim()}><Send size={15} /> Enviar</Button>}
         {purpose === null && <div className="about-reading" role="status"><b><AxisMark /> Axis</b><p className="thinking-phrase">Leyendo lo que has escrito<span className="thinking-dots"><i>.</i><i>.</i><i>.</i></span></p></div>}
         {purpose && <div className="about-reading" ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}><b><AxisMark /> El propósito de reflexionar</b><p>{purpose}</p></div>}
+      </>}
+
+      {step === 'studies' && <>
+        <Intro title="Por qué reflexionar funciona" text="Lo que dicen los estudios y lo que cambia cuando lo haces con Mentax." />
+        <WhyReflect />
       </>}
 
       {step === 'motives' && <>
@@ -145,6 +152,49 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     </div>
 
     <div className="button-row onboarding-actions"><Button variant="soft" onClick={back}>Atrás</Button><Button onClick={next} disabled={step === 'name' && !name.trim()}>{nextLabel} <ArrowRight size={16} /></Button></div>
+  </div>
+}
+
+// Lo que dicen los estudios. Solo datos publicados; si se cambia algo, citar la fuente.
+const STUDIES = [
+  { figure: '138', unit: 'estudios', text: 'Ir apuntando cómo avanzas hacia tus objetivos aumenta las probabilidades de conseguirlos, sobre todo cuando lo dejas por escrito.', source: 'Harkin y cols., Psychological Bulletin, 2016 (19.951 personas)' },
+  { figure: '146', unit: 'estudios', text: 'Escribir sobre lo que sientes tiene un efecto positivo en el bienestar. Es un efecto modesto, pero aparece de forma consistente.', source: 'Frattaroli, Psychological Bulletin, 2006' },
+  { figure: '↓', unit: 'estrés emocional', text: 'Poner nombre a lo que sientes reduce la actividad de la amígdala, la zona del cerebro que reacciona ante lo que nos altera.', source: 'Lieberman y cols., UCLA, Psychological Science, 2007' },
+]
+
+const WITH_MENTAX = [
+  { without: 'Lo que sientes se acumula y da vueltas en la cabeza.', with: 'Lo escribes, le pones nombre y se ordena.' },
+  { without: 'Los patrones de tus días pasan desapercibidos.', with: 'Axis te señala lo que se repite y el resumen semanal lo muestra.' },
+  { without: 'Los objetivos se olvidan a las pocas semanas.', with: 'Axis apunta tus avances cada vez que los cuentas.' },
+  { without: 'Lo que aprendes de un mal día se pierde.', with: 'Guardas tus aprendizajes y vuelves a ellos.' },
+  { without: 'Decides en piloto automático.', with: 'Decides con lo que has aprendido de ti.' },
+]
+
+/** Página tras la respuesta de Axis: por qué reflexionar, según los estudios, y qué cambia con Mentax. */
+function WhyReflect() {
+  return <div className="why-reflect">
+    <section className="why-chart" aria-label="Rendimiento tras 15 minutos de reflexión al día: un 21 % mejor que sin reflexionar">
+      <b><BookOpen size={13} /> Lo que dicen los estudios</b>
+      <h3>15 minutos al día reflexionando, un 21 % más de rendimiento</h3>
+      <p>En un estudio con empleados en formación, quienes dedicaron los últimos 15 minutos del día a escribir qué habían aprendido rindieron más que quienes siguieron trabajando ese rato.</p>
+      <div className="why-bars">
+        <div className="why-bar" title="Sin reflexionar: rendimiento de referencia (100)"><span>Sin reflexionar</span><div><i style={{ width: `${(100 / 121) * 100}%` }} /></div><em>100</em></div>
+        <div className="why-bar on" title="Reflexionando 15 minutos: 21 % más (121)"><span>Reflexionando</span><div><i style={{ width: '100%' }} /></div><em>+21 %</em></div>
+      </div>
+      <small>Di Stefano, Gino, Pisano y Staats, Harvard Business School y HEC Paris</small>
+    </section>
+
+    <div className="why-studies">{STUDIES.map((st) => <div className="why-study" key={st.source}>
+      <strong>{st.figure}<small>{st.unit}</small></strong>
+      <p>{st.text}<small>{st.source}</small></p>
+    </div>)}</div>
+
+    <section className="why-compare">
+      <b>Lo que cambia con Mentax</b>
+      <div className="why-compare-head"><span>Sin Mentax</span><span>Con Mentax</span></div>
+      {WITH_MENTAX.map((row) => <div className="why-compare-row" key={row.with}><span>{row.without}</span><span><Check size={12} /> {row.with}</span></div>)}
+    </section>
+    <p className="form-hint">Son resultados medios de los estudios: cada persona es distinta, y lo que más cuenta es la constancia.</p>
   </div>
 }
 
