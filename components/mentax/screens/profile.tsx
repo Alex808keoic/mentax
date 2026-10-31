@@ -7,6 +7,8 @@ import { clearAll, deleteLearning, saveProfile } from '@/lib/db'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
 import { AxisMark, Button, Header, Logo } from '../ui'
+import { useEcosystem } from '../ecosystem'
+import { EcosystemSection } from './ecosystem-section'
 
 type Panel = 'privacy' | 'help' | null
 
@@ -18,6 +20,7 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
   const [panel, setPanel] = useState<Panel>(null)
   const [pendingRestore, setPendingRestore] = useState<ReturnType<typeof parseBackup> | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const ecosystem = useEcosystem()
   const fileInput = useRef<HTMLInputElement>(null)
   const activeGoals = data.goals.filter((g) => g.status === 'active').length
 
@@ -52,6 +55,11 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
 
   async function clearEverything() {
     if (!confirmClear) return setConfirmClear(true)
+    // Si se compartía con AXIS, también se borra allí lo que recibió de Mentax.
+    if (ecosystem.sharing && !(await ecosystem.stopSharing())) {
+      setConfirmClear(false)
+      return notify('No se ha podido borrar lo compartido con AXIS. Conéctate e inténtalo otra vez.')
+    }
     await clearAll()
     setConfirmClear(false)
     notify('Se han borrado todos los datos')
@@ -75,6 +83,8 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
     {data.learnings.length ? <div className="insight-card learnings">{data.learnings.map((l) => <div className="insight" key={l.id}><span className="insight-icon violet"><Lightbulb size={15} /></span><p>{l.text}</p><button className="icon-button small" onClick={() => deleteLearning(l.id)} aria-label="Olvidar aprendizaje"><X size={14} /></button></div>)}</div>
       : <div className="empty-card">Cuando guardes el aprendizaje del día al cerrar una reflexión, aparecerá aquí. Axis lo tiene en cuenta en los días siguientes.</div>}
 
+    <EcosystemSection notify={notify} />
+
     <h2 className="section-title">Tus datos</h2>
     <button className="setting-row" onClick={exportBackup}><span><Download size={17} /></span><b>Exportar copia de seguridad</b><ChevronRight size={16} /></button>
     <button className="setting-row" onClick={() => fileInput.current?.click()}><span><Upload size={17} /></span><b>Restaurar una copia</b><ChevronRight size={16} /></button>
@@ -83,7 +93,7 @@ export function Profile({ data, navigate, notify }: { data: AppData; navigate: N
 
     <h2 className="section-title settings-title">Preferencias</h2>
     <button className="setting-row" onClick={() => toggle('privacy')} aria-expanded={panel === 'privacy'}><span><Heart size={17} /></span><b>Privacidad y seguridad</b>{panel === 'privacy' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
-    {panel === 'privacy' && <div className="setting-panel"><p>Tu diario, tus objetivos y tus aprendizajes se guardan solo en este dispositivo y navegador. Mentax no tiene cuentas ni servidores con tus datos.</p><p>Cuando envías una entrada a Axis, respondes a sus preguntas, hablas con él en el chat, pides ideas o el resumen semanal, se envía al modelo de IA con el que funciona Axis solo el texto necesario para responder (la entrada o el chat, tus entradas recientes, tus objetivos, tus aprendizajes guardados y lo que contaste sobre ti). No se almacena. La conversación con Axis también se guarda solo en este dispositivo.</p><p>Si borras los datos del navegador, perderás tu diario: exporta una copia de seguridad de vez en cuando.</p></div>}
+    {panel === 'privacy' && <div className="setting-panel"><p>Tu diario, tus objetivos y tus aprendizajes se guardan solo en este dispositivo y navegador. Mentax no tiene cuentas ni servidores con tus datos. La única excepción es opcional: si conectas el ecosistema AXIS y lo confirmas, se envían a la app AXIS (servidores en la UE) los números de cada semana que elijas, nunca texto; «Dejar de compartir» los borra allí.</p><p>Cuando envías una entrada a Axis, respondes a sus preguntas, hablas con él en el chat, pides ideas o el resumen semanal, se envía al modelo de IA con el que funciona Axis solo el texto necesario para responder (la entrada o el chat, tus entradas recientes, tus objetivos, tus aprendizajes guardados y lo que contaste sobre ti). No se almacena. La conversación con Axis también se guarda solo en este dispositivo.</p><p>Si borras los datos del navegador, perderás tu diario: exporta una copia de seguridad de vez en cuando.</p></div>}
     <button className="setting-row" onClick={() => toggle('help')} aria-expanded={panel === 'help'}><span><CircleHelp size={17} /></span><b>Ayuda y soporte</b>{panel === 'help' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
     {panel === 'help' && <div className="setting-panel"><p><b>Tu diario:</b> cada día escribe libremente cómo te ha ido. Si no sabes por dónde empezar, pide una idea.</p><p><b>Axis, tu acompañante:</b> es la inteligencia artificial de Mentax. Lee tu entrada, te da su reflexión y te hace un par de preguntas para profundizar. Cuando respondes, cierra el día con un comentario y un aprendizaje que puedes guardar. Con el tiempo te conoce mejor: tiene en cuenta lo que contaste sobre ti, tus objetivos y tus aprendizajes.</p><p><b>Hablar con Axis:</b> en la pestaña Axis puedes escribirle cuando quieras, de lo que quieras. Conoce tu diario y tus objetivos, pero no puede cambiar nada de la app.</p><p><b>Objetivos:</b> si escribes lo que quieres conseguir («esta semana quiero…»), Axis te propone añadirlo a tus objetivos y el fin de semana te pregunta cómo ha ido.</p><p><b>Mi semana:</b> tu ánimo, tu constancia y el resumen que Axis hace de tu semana.</p><p>Mentax es una herramienta de apoyo para reflexionar; no sustituye tu criterio ni la ayuda de un profesional cuando la necesites.</p></div>}
     <button className="setting-row danger" onClick={clearEverything} onBlur={() => setConfirmClear(false)}><span><Trash2 size={17} /></span><b>{confirmClear ? 'Pulsa otra vez para borrarlo todo' : 'Borrar todos los datos'}</b><ChevronRight size={16} /></button>

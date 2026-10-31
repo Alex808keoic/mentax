@@ -108,6 +108,12 @@ button:disabled { cursor: default; opacity: .55; }
 .section-title.settings-title { margin-top: 24px; }
 .setting-panel { padding: 4px 6px 12px 47px; border-bottom: 1px solid #f0eff5; }
 .setting-panel p { color: #5d5c72; font-size: 10.5px; line-height: 1.6; margin: 8px 0; }
+.ecosystem-panel .button-row { margin-top: 10px; }
+.share-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.share-chips button { border: 1px solid #e9e8f0; background: #fff; color: #77768b; border-radius: 20px; padding: 7px 11px; font-size: 10px; }
+.share-chips button.selected { border-color: #b6a8fa; background: #f0edff; color: #6c56dc; font-weight: 700; }
+.share-check { display: flex; gap: 8px; align-items: flex-start; color: #5d5c72; font-size: 10.5px; line-height: 1.5; }
+.share-check input { margin-top: 2px; accent-color: #7560ee; }
 .setting-row.danger > span { background: #fff1f4; color: #c4456b; }
 .setting-row.danger b { color: #c4456b; }
 .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 20; padding: 10px 16px; border-radius: 12px; background: #1c1b2b; color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 10px 24px rgba(28,27,43,.25); animation: slide-in .2s ease-out; white-space: nowrap; }

@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import { EcosystemProvider } from '@/components/mentax/ecosystem'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="antialiased">
-        {children}
+        <EcosystemProvider>{children}</EcosystemProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

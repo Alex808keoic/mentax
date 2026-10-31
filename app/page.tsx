@@ -13,6 +13,7 @@ import { Profile } from '@/components/mentax/screens/profile'
 import { Onboarding } from '@/components/mentax/screens/onboarding'
 import { AxisChat } from '@/components/mentax/screens/axis'
 import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
+import { RETURN_TO_PROFILE_KEY } from '@/lib/ecosystem/client'
 
 export default function Page() {
   const [route, setRoute] = useState<Route>({ screen: 'home' })
@@ -35,6 +36,17 @@ export default function Page() {
     setRoute(next)
     window.scrollTo(0, 0)
   }, [])
+
+  // Al volver de entrar con Google para el ecosistema AXIS, se reabre Perfil, donde se empezó.
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(RETURN_TO_PROFILE_KEY) === null) return
+      window.sessionStorage.removeItem(RETURN_TO_PROFILE_KEY)
+      navigate('profile')
+    } catch {
+      // Sin sessionStorage se queda en Inicio.
+    }
+  }, [navigate])
 
   const notify = useCallback((message: string) => {
     setToast(message)
