@@ -11,11 +11,13 @@ import type { AboutMe, DetectedGoal } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify, Screen } from '../nav'
 import { AxisMark, Button, Header, Logo, MoodPicker } from '../ui'
+import { useEcosystem } from '../ecosystem'
 
 // «studies» no es una pregunta: es la página de por qué reflexionar funciona.
 const QUESTIONS = ['name', 'why', 'studies', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
-type Step = 'welcome' | Question | 'done'
+// «axis» va después de «done»: invita a conectar con el ecosistema AXIS, y se puede saltar.
+type Step = 'welcome' | Question | 'done' | 'axis'
 
 /**
  * La primera vez que se entra, Axis pregunta quién eres. Lo que cuentes se
@@ -31,6 +33,9 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const [saving, setSaving] = useState(false)
   // Respuesta de Axis a «¿por qué reflexionar?»: undefined sin enviar, null pensando.
   const [purpose, setPurpose] = useState<string | null | undefined>(undefined)
+  // Adónde ir al terminar, elegido en «done» antes del paso de AXIS.
+  const [destination, setDestination] = useState<'write' | 'home'>('write')
+  const ecosystem = useEcosystem()
   const set = (patch: Partial<AboutMe>) => setAbout((a) => ({ ...a, ...patch }))
   const go = (to: Step, dir: 'forward' | 'back') => { setDirection(dir); setStep(to) }
 
@@ -62,10 +67,21 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   if (step === 'done') return <Done about={about} name={name.trim()} editing={editing} notify={notify}>
     {editing ? <Button className="full-button" onClick={() => save(() => { notify('Guardado. Axis lo tendrá en cuenta'); navigate(returnTo, undefined, { replace: true }) })} disabled={saving}><Check size={16} /> Listo</Button> : <>
       <div className="prompt-card onboarding-next"><b>Tu primer paso</b><p>Cuenta cómo ha ido tu día: qué has hecho, cómo te has sentido o qué te ronda la cabeza. No hace falta que sea largo.</p></div>
-      <Button className="full-button" onClick={() => save(() => navigate('write'))} disabled={saving}><PenLine size={15} /> Escribir mi primera entrada</Button>
-      <Button variant="ghost" className="full-button onboarding-skip" onClick={() => save(() => navigate('home'))} disabled={saving}>Ir al inicio</Button>
+      <Button className="full-button" onClick={() => { setDestination('write'); go('axis', 'forward') }}><PenLine size={15} /> Escribir mi primera entrada</Button>
+      <Button variant="ghost" className="full-button onboarding-skip" onClick={() => { setDestination('home'); go('axis', 'forward') }}>Ir al inicio</Button>
     </>}
   </Done>
+
+  // Conectar con AXIS: primero se guarda el onboarding y después se va a Google. Al volver se
+  // abre Perfil, donde se elige qué compartir: entrar no comparte nada por sí solo.
+  if (step === 'axis') return <div className="screen scrollable onboarding">
+    <section className="onboarding-hero"><AxisMark size="md" /><h1>Conecta con AXIS</h1><p>Opcional. Puedes hacerlo cuando quieras desde Perfil.</p></section>
+    <div className="prompt-card"><b>Qué es AXIS</b><p>La app que une Mentax con Finax y Axthletics: cada semana te resume cómo vas en mente, cuerpo y dinero, y te propone un paso para mejorar.</p></div>
+    <div className="prompt-card"><b>Por qué con Google</b><p>Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.</p></div>
+    <div className="prompt-card"><b>Qué se comparte</b><p>Nada hasta que lo confirmes. Después, solo unos números por semana, como tu ánimo medio o cuántos días escribes. <b>Nunca tu diario</b>, las reflexiones de Axis ni lo que hablas con él.</p></div>
+    <Button className="full-button" onClick={() => save(() => void ecosystem.signIn())} disabled={saving}>Entrar con Google <ArrowRight size={16} /></Button>
+    <Button variant="ghost" className="full-button onboarding-skip" onClick={() => save(() => navigate(destination))} disabled={saving}>Ahora no</Button>
+  </div>
 
   const index = QUESTIONS.indexOf(step)
   const last = index === QUESTIONS.length - 1
