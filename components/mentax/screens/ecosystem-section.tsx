@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, LogIn, LogOut, Share2, Unlink } from 'lucide-react'
+import { ArrowUpRight, ChevronDown, ChevronRight, LogIn, LogOut, Share2, Unlink } from 'lucide-react'
+import { AXIS_URL } from '@/lib/ecosystem/client'
 import { DEFAULT_METRICS, MENTAX_METRICS, METRIC_LABELS, type MentaxMetric } from '@/lib/ecosystem/sharing'
 import { useEcosystem } from '../ecosystem'
 import type { Notify } from '../nav'
@@ -51,7 +52,7 @@ export function EcosystemSection({ notify }: { notify: Notify }) {
     <h2 className="section-title settings-title">Ecosistema AXIS</h2>
     <button className="setting-row about-row" onClick={openPanel} aria-expanded={open}><span><AxisMark /></span><b>Conectar con AXIS<small>{account.status === 'signedIn' ? summary : 'La app que une Mentax, Finax y Axthletics'}</small></b>{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
     {open && <div className="setting-panel ecosystem-panel">
-      <p>Si quieres, Mentax le manda a la app AXIS unos números de cada semana. <b>Nunca texto:</b> ni tu diario, ni las reflexiones de Axis, ni tus respuestas, aprendizajes, resúmenes, el chat o lo que contaste sobre ti.</p>
+      <p><b>Mentax es parte del ecosistema AXIS</b>, la app que une Mentax, Finax y Axthletics. Si quieres, Mentax le manda unos números de cada semana. <b>Nunca texto:</b> ni tu diario, ni las reflexiones de Axis, ni tus respuestas, aprendizajes, resúmenes, el chat o lo que contaste sobre ti.</p>
 
       {account.status === 'checking' && <p>Comprobando la conexión…</p>}
 
@@ -74,6 +75,7 @@ export function EcosystemSection({ notify }: { notify: Notify }) {
           <Button variant="ghost" disabled={busy} onClick={() => void run(async () => (await signOut(), 'Sesión cerrada'))}><LogOut size={15} /> Cerrar sesión</Button>
         </div>
       </>}
+      <a className="app-button soft full-button" href={AXIS_URL} target="_blank" rel="noopener noreferrer">Abrir AXIS <ArrowUpRight size={15} /></a>
     </div>}
   </>
 }
