@@ -218,6 +218,31 @@ button:disabled { cursor: default; opacity: .55; }
 .onboarding-hero p { color: var(--muted); font-size: 12.5px; line-height: 1.65; margin: 0 0 10px; }
 .onboarding-privacy { display: flex; align-items: center; gap: 7px; color: #6f6a8e; background: var(--lavender-light); border-radius: 11px; padding: 10px 12px; font-size: 10.5px; margin: 14px 0 6px; }
 .onboarding-next { margin-top: 16px; }
+/* Bienvenida y paso de AXIS con la estética de la bienvenida de AXIS: marca centrada, título grande, puntos con icono, puntos de avance. */
+.onb { min-height: 100%; display: flex; flex-direction: column; padding-top: 6px; }
+.onb-top { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+.onb-top .brand { font-size: 15px; gap: 8px; }
+.onb-top .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
+.onb-link { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 650; padding: 10px 4px; }
+.onb-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 22px 0; }
+.onb-hero { text-align: center; }
+.onb-tile { width: 96px; height: 96px; border-radius: 28px; overflow: hidden; margin: 0 auto; box-shadow: 0 12px 28px rgba(117, 96, 238, .22); }
+.onb-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.onb h1 { font-size: 27px; font-weight: 750; letter-spacing: -.035em; line-height: 1.15; margin: 0; text-wrap: balance; }
+.onb-hero h1 { margin-top: 28px; }
+.onb-lead { font-size: 14.5px; color: var(--muted); line-height: 1.55; margin: 10px 0 0; text-wrap: pretty; }
+.onb-hero .onb-lead { margin-left: auto; margin-right: auto; max-width: 320px; }
+.onb-points { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 10px; }
+.onb-point { display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1px solid #eeeef5; border-radius: 18px; padding: 13px 14px; box-shadow: 0 3px 10px rgba(53, 47, 103, .05); }
+.onb-point .ic { width: 38px; height: 38px; border-radius: 12px; background: var(--lavender-light); color: var(--lavender); display: grid; place-items: center; flex: none; }
+.onb-point b { display: block; font-size: 14px; }
+.onb-point p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.onb-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 16px; }
+.onb-dots i { width: 6px; height: 6px; border-radius: 3px; background: #e4e2f0; transition: width .3s, background .3s; }
+.onb-dots i.on { width: 20px; background: var(--lavender); }
+.onb .full-button { min-height: 50px; border-radius: 25px; font-size: 14px; }
+.onb .onboarding-skip { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .onb-dots i { transition: none; } }
 .onboarding-skip { margin-top: 6px; }
 .onboarding-actions { margin-top: 26px; }
 .chip-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }

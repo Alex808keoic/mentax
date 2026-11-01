@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, BookOpen, Check, Lock, PenLine, Plus, Send, Target, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, Layers, Link2, Lock, MessageCircle, PenLine, Plus, Send, Target, X } from 'lucide-react'
 import { AGES, AREAS, describeAbout, EMPTY_ABOUT, MAX_PICKS, MOTIVES, OCCUPATIONS, SUPPORTS, TONES, type AboutOption } from '@/lib/about'
 import { explainPurpose, readAbout } from '@/lib/ai/client'
 import type { AboutReading } from '@/lib/ai/contract'
@@ -16,8 +16,30 @@ import { useEcosystem } from '../ecosystem'
 // «studies» no es una pregunta: es la página de por qué reflexionar funciona.
 const QUESTIONS = ['name', 'why', 'studies', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
-// «axis» va después de «done»: invita a conectar con el ecosistema AXIS, y se puede saltar.
-type Step = 'welcome' | Question | 'done' | 'axis'
+// «intro» (qué hace Mentax) va entre la bienvenida y las preguntas. «axis» va después de
+// «done»: invita a conectar con el ecosistema AXIS, y se puede saltar.
+type Step = 'welcome' | 'intro' | Question | 'done' | 'axis'
+
+const INTRO_POINTS = [
+  { icon: PenLine, title: 'Tu diario', text: 'Escribe cómo te ha ido el día, sin prisa y sin formato.' },
+  { icon: MessageCircle, title: 'Axis te acompaña', text: 'Lee lo que escribes, reflexiona contigo y te hace preguntas para ir más allá.' },
+  { icon: Target, title: 'Tus objetivos', text: 'Lo que quieres conseguir, y cómo vas cada semana.' },
+  { icon: Lock, title: 'Solo en tu móvil', text: 'Lo que cuentes se guarda en este dispositivo. Sin cuenta.' },
+] as const
+
+const AXIS_POINTS = [
+  { icon: Layers, title: 'Qué es AXIS', text: 'La app que une Mentax con Finax y Axthletics: cada semana te resume cómo vas en mente, cuerpo y dinero, y te propone un paso para mejorar.' },
+  { icon: Link2, title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
+  { icon: Lock, title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo unos números por semana, como tu ánimo medio. Nunca tu diario, las reflexiones de Axis ni lo que hablas con él.' },
+] as const
+
+function Points({ items }: { items: readonly { icon: React.ComponentType<{ size?: number }>; title: string; text: string }[] }) {
+  return <ul className="onb-points">{items.map(({ icon: Icon, title, text }) => <li key={title} className="onb-point"><span className="ic" aria-hidden="true"><Icon size={18} /></span><div><b>{title}</b><p>{text}</p></div></li>)}</ul>
+}
+
+function Dots({ count, active }: { count: number; active: number }) {
+  return <div className="onb-dots" aria-hidden="true">{Array.from({ length: count }, (_, i) => <i key={i} className={i === active ? 'on' : ''} />)}</div>
+}
 
 /**
  * La primera vez que se entra, Axis pregunta quién eres. Lo que cuentes se
@@ -57,11 +79,27 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     await saveAbout({ ...EMPTY_ABOUT, completedAt: Date.now() })
   }
 
-  if (step === 'welcome') return <div className="screen scrollable onboarding">
-    <section className="onboarding-hero"><Logo /><h1>Hola, esto es Mentax</h1><p>Tu espacio para conocerte, entender lo que vives y avanzar a tu ritmo.</p><p>Aquí te acompaña <b className="axis-name">Axis</b>: lee tu diario, reflexiona contigo, te hace preguntas y te ayuda con tus objetivos. Antes de empezar, quiere conocerte un poco. Son unas preguntas rápidas, unos dos minutos, y le ayudarán a acompañarte mejor.</p></section>
-    <p className="onboarding-privacy"><Lock size={13} /> Lo que cuentes se guarda solo en este dispositivo.</p>
-    <Button className="full-button" onClick={() => go('name', 'forward')}>Empezar <ArrowRight size={16} /></Button>
-    <Button variant="ghost" className="full-button onboarding-skip" onClick={skip}>Ahora no</Button>
+  // Bienvenida con la estética de la de AXIS: marca centrada, título grande y un botón grande.
+  if (step === 'welcome') return <div className="screen scrollable onb">
+    <div className="onb-top"><span className="brand"><Logo /> Mentax</span><button type="button" className="onb-link" onClick={skip}>Ahora no</button></div>
+    <div className="onb-body onb-hero">
+      <div className="onb-tile"><img src="/mentax-cerebro.png" alt="" /></div>
+      <h1>Hola, esto es Mentax</h1>
+      <p className="onb-lead">Tu espacio para conocerte, entender lo que vives y avanzar a tu ritmo, con <b className="axis-name">Axis</b> a tu lado.</p>
+    </div>
+    <Dots count={2} active={0} />
+    <Button className="full-button" onClick={() => go('intro', 'forward')}>Empezar <ArrowRight size={16} /></Button>
+  </div>
+
+  if (step === 'intro') return <div className="screen scrollable onb">
+    <div className="onb-top"><button type="button" className="icon-button" onClick={() => go('welcome', 'back')} aria-label="Volver"><ArrowLeft size={19} /></button><button type="button" className="onb-link" onClick={skip}>Ahora no</button></div>
+    <div className="onb-body">
+      <h1>Qué hace Mentax</h1>
+      <p className="onb-lead">Antes de empezar, Axis quiere conocerte un poco: unas preguntas rápidas, unos dos minutos.</p>
+      <Points items={INTRO_POINTS} />
+    </div>
+    <Dots count={2} active={1} />
+    <Button className="full-button" onClick={() => go('name', 'forward')}>Siguiente <ArrowRight size={16} /></Button>
   </div>
 
   if (step === 'done') return <Done about={about} name={name.trim()} editing={editing} notify={notify}>
@@ -74,11 +112,14 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
 
   // Conectar con AXIS: primero se guarda el onboarding y después se va a Google. Al volver se
   // abre Perfil, donde se elige qué compartir: entrar no comparte nada por sí solo.
-  if (step === 'axis') return <div className="screen scrollable onboarding">
-    <section className="onboarding-hero"><AxisMark size="md" /><h1>Conecta con AXIS</h1><p>Opcional. Puedes hacerlo cuando quieras desde Perfil.</p></section>
-    <div className="prompt-card"><b>Qué es AXIS</b><p>La app que une Mentax con Finax y Axthletics: cada semana te resume cómo vas en mente, cuerpo y dinero, y te propone un paso para mejorar.</p></div>
-    <div className="prompt-card"><b>Por qué con Google</b><p>Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.</p></div>
-    <div className="prompt-card"><b>Qué se comparte</b><p>Nada hasta que lo confirmes. Después, solo unos números por semana, como tu ánimo medio o cuántos días escribes. <b>Nunca tu diario</b>, las reflexiones de Axis ni lo que hablas con él.</p></div>
+  if (step === 'axis') return <div className="screen scrollable onb">
+    <div className="onb-top"><span className="brand"><Logo /> Mentax</span></div>
+    <div className="onb-body">
+      <AxisMark size="md" />
+      <h1 style={{ marginTop: 18 }}>Conecta con AXIS</h1>
+      <p className="onb-lead">Opcional. Puedes hacerlo cuando quieras desde Perfil.</p>
+      <Points items={AXIS_POINTS} />
+    </div>
     <Button className="full-button" onClick={() => save(() => void ecosystem.signIn())} disabled={saving}>Entrar con Google <ArrowRight size={16} /></Button>
     <Button variant="ghost" className="full-button onboarding-skip" onClick={() => save(() => navigate(destination))} disabled={saving}>Ahora no</Button>
   </div>
@@ -97,7 +138,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     supports: about.supports.length > 0,
     tone: !!about.tone,
   }
-  const back = () => (index > 0 ? go(QUESTIONS[index - 1], 'back') : editing ? navigate(returnTo) : go('welcome', 'back'))
+  const back = () => (index > 0 ? go(QUESTIONS[index - 1], 'back') : editing ? navigate(returnTo) : go('intro', 'back'))
   const next = () => go(last ? 'done' : QUESTIONS[index + 1], 'forward')
   const nextLabel = !answered[step] && step !== 'name' ? 'Saltar' : last ? 'Terminar' : 'Siguiente'
 
