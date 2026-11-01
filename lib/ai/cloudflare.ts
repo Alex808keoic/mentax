@@ -1,6 +1,7 @@
 /**
  * Proveedor de IA (endpoint compatible con OpenAI), solo en el servidor.
  * - Cloudflare Workers AI: `CF_ACCOUNT_ID` + `CF_API_TOKEN`; modelo opcional en `CF_AI_MODEL`.
+ * - Groq: `GROQ_API_KEY`; modelo opcional en `GROQ_MODEL`.
  * - Si no, Vercel AI Gateway: en Vercel se autentica solo (OIDC); fuera, con
  *   `AI_GATEWAY_API_KEY`. Modelo opcional en `AI_GATEWAY_MODEL`.
  */
@@ -8,11 +9,13 @@ import { getVercelOidcToken } from '@vercel/oidc'
 import type { PromptSpec } from './prompts'
 
 export const CLOUDFLARE_DEFAULT_MODEL = '@cf/google/gemma-4-26b-a4b-it'
+// Modelo de producción incluido en el plan gratuito de Groq.
+export const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b'
 // El mismo modelo que en Cloudflare, para que Axis responda igual.
 export const GATEWAY_DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it'
 
 export interface AIConfig {
-  provider: 'Cloudflare' | 'AI Gateway'
+  provider: 'Cloudflare' | 'Groq' | 'AI Gateway'
   url: string
   model: string
   token: () => Promise<string>
@@ -26,6 +29,13 @@ export function readAIConfig(env: Record<string, string | undefined> = process.e
     url: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/v1/chat/completions`,
     model: env.CF_AI_MODEL?.trim() || CLOUDFLARE_DEFAULT_MODEL,
     token: async () => apiToken,
+  }
+  const groqKey = env.GROQ_API_KEY?.trim()
+  if (groqKey) return {
+    provider: 'Groq',
+    url: 'https://api.groq.com/openai/v1/chat/completions',
+    model: env.GROQ_MODEL?.trim() || GROQ_DEFAULT_MODEL,
+    token: async () => groqKey,
   }
   const gatewayKey = env.AI_GATEWAY_API_KEY?.trim()
   if (!gatewayKey && env.VERCEL !== '1') return null
@@ -63,10 +73,12 @@ export function parseJSONOutput(text: string): unknown {
 
 export async function runAI(config: AIConfig, spec: PromptSpec, fetchImpl: typeof fetch = fetch, timeoutMs = 30_000): Promise<unknown> {
   const name = config.provider
+  const reasons = config.model.startsWith('openai/gpt-oss')
   const body = {
     model: config.model,
     temperature: 0.6,
-    max_completion_tokens: spec.maxOutputTokens,
+    // Los gpt-oss razonan antes de contestar y ese razonamiento cuenta en el tope.
+    max_completion_tokens: reasons ? spec.maxOutputTokens + 1500 : spec.maxOutputTokens,
     messages: [
       { role: 'system', content: spec.system },
       ...(spec.history ?? []),
@@ -75,6 +87,7 @@ export async function runAI(config: AIConfig, spec: PromptSpec, fetchImpl: typeo
     response_format: { type: 'json_schema', json_schema: { name: 'mentax_output', strict: true, schema: spec.schema } },
     // Solo Cloudflare entiende esta opción (quita el razonamiento de Gemma).
     ...(config.provider === 'Cloudflare' ? { chat_template_kwargs: { enable_thinking: false } } : {}),
+    ...(reasons ? { reasoning_effort: 'low' } : {}),
   }
   let token: string
   try {
