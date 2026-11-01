@@ -1,10 +1,10 @@
 /**
  * POST /api/ai — único punto de contacto con la IA. Recibe el contexto mínimo
- * de una tarea, llama a Cloudflare y devuelve la salida ya limpia. No guarda nada.
+ * de una tarea, llama al proveedor de IA y devuelve la salida ya limpia. No guarda nada.
  */
 import { NextResponse } from 'next/server'
 import { cleanAboutReading, cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanPurpose, cleanReflection, cleanWeek, MAX_BODY_BYTES, parseAIRequest, type AIErrorCode, type AIResponse } from '@/lib/ai/contract'
-import { AICallError, readCloudflareConfig, runCloudflare } from '@/lib/ai/cloudflare'
+import { AICallError, readAIConfig, runAI } from '@/lib/ai/cloudflare'
 import { aboutPrompt, chatPrompt, closePrompt, greetingPrompt, ideasPrompt, purposePrompt, reflectPrompt, weekPrompt } from '@/lib/ai/prompts'
 
 export const runtime = 'nodejs'
@@ -26,7 +26,7 @@ function limited(ip: string, now: number): boolean {
 const fail = (error: AIErrorCode, status: number) => NextResponse.json<AIResponse<never>>({ ok: false, error }, { status })
 
 export async function POST(request: Request) {
-  const config = readCloudflareConfig()
+  const config = readAIConfig()
   if (!config) return fail('not-configured', 503)
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local'
@@ -45,14 +45,14 @@ export async function POST(request: Request) {
 
   try {
     let data: unknown
-    if (body.task === 'reflect') data = cleanReflection(await runCloudflare(config, reflectPrompt(body.input)))
-    else if (body.task === 'close') data = cleanClosing(await runCloudflare(config, closePrompt(body.input)))
-    else if (body.task === 'ideas') data = cleanIdeas(await runCloudflare(config, ideasPrompt(body.input)))
-    else if (body.task === 'about') data = cleanAboutReading(await runCloudflare(config, aboutPrompt(body.input)))
-    else if (body.task === 'purpose') data = cleanPurpose(await runCloudflare(config, purposePrompt(body.input)))
-    else if (body.task === 'greeting') data = cleanGreeting(await runCloudflare(config, greetingPrompt(body.input)))
-    else if (body.task === 'chat') data = cleanChat(await runCloudflare(config, chatPrompt(body.input)))
-    else data = cleanWeek(await runCloudflare(config, weekPrompt(body.input)))
+    if (body.task === 'reflect') data = cleanReflection(await runAI(config, reflectPrompt(body.input)))
+    else if (body.task === 'close') data = cleanClosing(await runAI(config, closePrompt(body.input)))
+    else if (body.task === 'ideas') data = cleanIdeas(await runAI(config, ideasPrompt(body.input)))
+    else if (body.task === 'about') data = cleanAboutReading(await runAI(config, aboutPrompt(body.input)))
+    else if (body.task === 'purpose') data = cleanPurpose(await runAI(config, purposePrompt(body.input)))
+    else if (body.task === 'greeting') data = cleanGreeting(await runAI(config, greetingPrompt(body.input)))
+    else if (body.task === 'chat') data = cleanChat(await runAI(config, chatPrompt(body.input)))
+    else data = cleanWeek(await runAI(config, weekPrompt(body.input)))
     if (!data) return fail('failed', 502)
     return NextResponse.json<AIResponse<unknown>>({ ok: true, data })
   } catch (error) {

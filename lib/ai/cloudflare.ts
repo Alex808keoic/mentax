@@ -1,22 +1,40 @@
 /**
- * Cloudflare Workers AI (endpoint compatible con OpenAI), solo en el servidor.
- * Credenciales: `CF_ACCOUNT_ID` + `CF_API_TOKEN`; modelo opcional en `CF_AI_MODEL`.
+ * Proveedor de IA (endpoint compatible con OpenAI), solo en el servidor.
+ * - Cloudflare Workers AI: `CF_ACCOUNT_ID` + `CF_API_TOKEN`; modelo opcional en `CF_AI_MODEL`.
+ * - Si no, Vercel AI Gateway: en Vercel se autentica solo (OIDC); fuera, con
+ *   `AI_GATEWAY_API_KEY`. Modelo opcional en `AI_GATEWAY_MODEL`.
  */
+import { getVercelOidcToken } from '@vercel/oidc'
 import type { PromptSpec } from './prompts'
 
 export const CLOUDFLARE_DEFAULT_MODEL = '@cf/google/gemma-4-26b-a4b-it'
+// El mismo modelo que en Cloudflare, para que Axis responda igual.
+export const GATEWAY_DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it'
 
-export interface CloudflareConfig {
-  accountId: string
-  apiToken: string
+export interface AIConfig {
+  provider: 'Cloudflare' | 'AI Gateway'
+  url: string
   model: string
+  token: () => Promise<string>
 }
 
-export function readCloudflareConfig(env: Record<string, string | undefined> = process.env): CloudflareConfig | null {
+export function readAIConfig(env: Record<string, string | undefined> = process.env): AIConfig | null {
   const accountId = env.CF_ACCOUNT_ID?.trim()
   const apiToken = env.CF_API_TOKEN?.trim()
-  if (!accountId || !apiToken) return null
-  return { accountId, apiToken, model: env.CF_AI_MODEL?.trim() || CLOUDFLARE_DEFAULT_MODEL }
+  if (accountId && apiToken) return {
+    provider: 'Cloudflare',
+    url: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/v1/chat/completions`,
+    model: env.CF_AI_MODEL?.trim() || CLOUDFLARE_DEFAULT_MODEL,
+    token: async () => apiToken,
+  }
+  const gatewayKey = env.AI_GATEWAY_API_KEY?.trim()
+  if (!gatewayKey && env.VERCEL !== '1') return null
+  return {
+    provider: 'AI Gateway',
+    url: 'https://ai-gateway.vercel.sh/v1/chat/completions',
+    model: env.AI_GATEWAY_MODEL?.trim() || GATEWAY_DEFAULT_MODEL,
+    token: gatewayKey ? async () => gatewayKey : () => getVercelOidcToken(),
+  }
 }
 
 export class AICallError extends Error {
@@ -43,8 +61,8 @@ export function parseJSONOutput(text: string): unknown {
   }
 }
 
-export async function runCloudflare(config: CloudflareConfig, spec: PromptSpec, fetchImpl: typeof fetch = fetch, timeoutMs = 30_000): Promise<unknown> {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.accountId)}/ai/v1/chat/completions`
+export async function runAI(config: AIConfig, spec: PromptSpec, fetchImpl: typeof fetch = fetch, timeoutMs = 30_000): Promise<unknown> {
+  const name = config.provider
   const body = {
     model: config.model,
     temperature: 0.6,
@@ -55,29 +73,36 @@ export async function runCloudflare(config: CloudflareConfig, spec: PromptSpec, 
       { role: 'user', content: spec.user },
     ],
     response_format: { type: 'json_schema', json_schema: { name: 'mentax_output', strict: true, schema: spec.schema } },
-    chat_template_kwargs: { enable_thinking: false },
+    // Solo Cloudflare entiende esta opción (quita el razonamiento de Gemma).
+    ...(config.provider === 'Cloudflare' ? { chat_template_kwargs: { enable_thinking: false } } : {}),
+  }
+  let token: string
+  try {
+    token = await config.token()
+  } catch {
+    throw new AICallError('failed', `${name}: no se ha podido obtener el token`)
   }
   let res: Response
   try {
-    res = await fetchImpl(url, {
+    res = await fetchImpl(config.url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${config.apiToken}` },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     })
   } catch {
-    throw new AICallError('failed', 'Cloudflare: error de red o tiempo agotado')
+    throw new AICallError('failed', `${name}: error de red o tiempo agotado`)
   }
-  if (res.status === 429) throw new AICallError('rate-limit', 'Cloudflare: HTTP 429')
-  if (!res.ok) throw new AICallError('failed', `Cloudflare: HTTP ${res.status}`)
+  if (res.status === 429) throw new AICallError('rate-limit', `${name}: HTTP 429`)
+  if (!res.ok) throw new AICallError('failed', `${name}: HTTP ${res.status}`)
   const data = (await res.json().catch(() => null)) as ChatResponse | null
   const choice = data?.choices?.[0]
-  if (choice?.finish_reason === 'length') throw new AICallError('failed', 'Cloudflare: respuesta truncada')
+  if (choice?.finish_reason === 'length') throw new AICallError('failed', `${name}: respuesta truncada`)
   const text = choice?.message?.content ?? ''
-  if (!text) throw new AICallError('failed', 'Cloudflare: respuesta vacía')
+  if (!text) throw new AICallError('failed', `${name}: respuesta vacía`)
   try {
     return parseJSONOutput(text)
   } catch {
-    throw new AICallError('failed', 'Cloudflare: la respuesta no es JSON')
+    throw new AICallError('failed', `${name}: la respuesta no es JSON`)
   }
 }

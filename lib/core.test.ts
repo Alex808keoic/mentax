@@ -4,7 +4,7 @@ import { addDays, currentStreak, dayKey, formatLong, weekDays, weekStart } from 
 import { deriveTitle, localIdeasFor, migrateEntry, stageOf } from './entries'
 import { cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
 import { parseBackup } from './backup'
-import { parseJSONOutput, readCloudflareConfig } from './ai/cloudflare'
+import { parseJSONOutput, readAIConfig } from './ai/cloudflare'
 import { chatPrompt, closePrompt, reflectPrompt } from './ai/prompts'
 
 describe('fechas', () => {
@@ -150,8 +150,11 @@ describe('contrato IA', () => {
   })
 
   it('sin credenciales no hay configuración', () => {
-    assert.equal(readCloudflareConfig({}), null)
-    assert.equal(readCloudflareConfig({ CF_ACCOUNT_ID: 'a', CF_API_TOKEN: 't' })?.model, '@cf/google/gemma-4-26b-a4b-it')
+    assert.equal(readAIConfig({}), null)
+    assert.equal(readAIConfig({ CF_ACCOUNT_ID: 'a', CF_API_TOKEN: 't' })?.model, '@cf/google/gemma-4-26b-a4b-it')
+    // Sin Cloudflare, en Vercel se usa AI Gateway.
+    assert.equal(readAIConfig({ VERCEL: '1' })?.provider, 'AI Gateway')
+    assert.equal(readAIConfig({ AI_GATEWAY_API_KEY: 'k' })?.model, 'google/gemma-4-26b-a4b-it')
   })
 })
 
