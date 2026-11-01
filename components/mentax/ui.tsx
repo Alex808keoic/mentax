@@ -14,9 +14,9 @@ export function AxisIcon({ size = 24 }: { size?: number }) {
   return <AxisSymbol size={size} mono />
 }
 
-/** El símbolo de Axis a todo color, junto a lo que dice o hace la IA. */
-export function AxisMark({ size = 'sm' }: { size?: 'sm' | 'md' }) {
-  return <span className={`axis-mark ${size}`} aria-hidden="true"><AxisSymbol size={size === 'md' ? 34 : 17} /></span>
+/** El símbolo de Axis a todo color, junto a lo que dice o hace la IA. Con `spin`, gira despacio mientras piensa, como en AXIS. */
+export function AxisMark({ size = 'sm', spin = false }: { size?: 'sm' | 'md'; spin?: boolean }) {
+  return <span className={`axis-mark ${size}`} aria-hidden="true"><AxisSymbol size={size === 'md' ? 34 : 17} className={spin ? 'axis-spin' : undefined} /></span>
 }
 
 export function Button({ children, onClick, variant = 'primary', className = '', disabled, type = 'button' }: { children: React.ReactNode; onClick?: () => void; variant?: 'primary' | 'ghost' | 'soft'; className?: string; disabled?: boolean; type?: 'button' | 'submit' }) {
@@ -59,6 +59,7 @@ export function MoodPicker({ value, onChange, label = '¿Cómo te sientes hoy?' 
   return <div className="mood-picker">{label && <b>{label}</b>}<div>{MOODS.map((m) => <button type="button" key={m.value} className={value === m.value ? 'selected' : ''} onClick={() => onChange(m.value)} aria-pressed={value === m.value}><span>{m.emoji}</span><small>{m.label}</small></button>)}</div></div>
 }
 
-export function Loading({ text }: { text: string }) {
-  return <div className="loading-state"><span className="spinner" />{text}</div>
+/** Esperando. Si quien trabaja es Axis (`axis`), su símbolo gira despacio, como en AXIS. */
+export function Loading({ text, axis = false }: { text: string; axis?: boolean }) {
+  return <div className="loading-state" role="status">{axis ? <AxisSymbol size={20} className="axis-spin" /> : <span className="spinner" />}{text}</div>
 }

@@ -60,7 +60,7 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
     <h2 className="section-title">Tu ánimo</h2>
     <div className="mood-week">{days.map((d, i) => { const m = dayMood(inWeek.filter((r) => r.date === d)); const mood = m ? moodOf(Math.round(m) as Mood) : undefined; return <div key={d} className={d === data.today ? 'today' : ''}><span className="bar"><i style={{ height: m ? `${(m / 5) * 100}%` : 0 }} /></span><em>{mood?.emoji ?? '·'}</em><small>{DAY_LETTERS[i]}</small></div> })}</div>
 
-    {loading && <Loading text="Preparando el resumen de tu semana…" />}
+    {loading && <Loading axis text="Preparando el resumen de tu semana…" />}
     {!loading && summary && <>
       {summary.resumen && <div className="analysis-card week-summary"><b><AxisMark /> Cómo ha ido, según Axis</b><p>{summary.resumen}</p></div>}
       {summary.aprendizajes.length > 0 && <><h2 className="section-title">Aprendizajes clave</h2><div className="insight-card">{summary.aprendizajes.map((text, i) => <div className="insight" key={text}><span className={`insight-icon ${INSIGHT_TONES[i % INSIGHT_TONES.length]}`}><Lightbulb size={15} /></span><p>{text}</p></div>)}</div></>}

@@ -158,7 +158,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
         {/* Si cambia lo escrito, puede volver a enviarlo. */}
         <label className="field"><textarea value={about.why ?? ''} onChange={(e) => { set({ why: e.target.value }); if (purpose) setPurpose(undefined) }} placeholder="Ej.: Para entenderme mejor y no ir siempre con el piloto automático." maxLength={1000} disabled={purpose === null} aria-label="Por qué es importante reflexionar" /></label>
         {purpose === undefined && <Button variant="soft" className="full-button" onClick={sendWhy} disabled={!about.why?.trim()}><Send size={15} /> Enviar</Button>}
-        {purpose === null && <div className="about-reading" role="status"><b><AxisMark /> Axis</b><p className="thinking-phrase">Leyendo lo que has escrito<span className="thinking-dots"><i>.</i><i>.</i><i>.</i></span></p></div>}
+        {purpose === null && <div className="about-reading" role="status"><b><AxisMark spin /> Axis</b><p className="thinking-phrase">Leyendo lo que has escrito<span className="thinking-dots"><i>.</i><i>.</i><i>.</i></span></p></div>}
         {purpose && <div className="about-reading" ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}><b><AxisMark /> El propósito de reflexionar</b><p>{purpose}</p></div>}
       </>}
 

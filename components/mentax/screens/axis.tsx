@@ -80,7 +80,7 @@ export function AxisChat({ data, notify }: { data: AppData; notify: Notify }) {
         <div className="chat-starters">{STARTERS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}</div>
       </div>}
       {messages.map((m) => <div key={m.id} className={`bubble ${m.role}`}>{m.text}</div>)}
-      {thinking && <div className="bubble axis typing" aria-label="Axis está escribiendo"><i /><i /><i /></div>}
+      {thinking && <div className="bubble axis thinking-axis" role="status"><AxisMark spin /> Pensando…</div>}
       {error && <div className="chat-error"><p>{error}</p>{lastIsUser && <button onClick={() => run(axisReply)}><RotateCcw size={13} /> Reintentar</button>}</div>}
       <div ref={end} />
     </div>

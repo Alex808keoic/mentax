@@ -126,7 +126,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     <h2 className="detail-title">{entry.title}</h2>
     <div className="diary-card"><p>{entry.text}</p></div>
 
-    {busy === 'reflect' && <Loading text="Axis está leyendo tu entrada…" />}
+    {busy === 'reflect' && <Loading axis text="Axis está leyendo tu entrada…" />}
     {r && busy !== 'reflect' && <>
       <div className="analysis-card reply"><b><AxisMark /> Axis reflexiona</b><p>{r.reflexion}</p></div>
       {r.ayudaProfesional && <div className="help-card"><LifeBuoy size={18} /><p>{r.ayudaProfesional}</p></div>}
@@ -137,7 +137,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     {r && stage === 'questions' && r.preguntas.length > 0 && busy !== 'reflect' && <>
       <h2 className="section-title qa-title">Para seguir reflexionando</h2>
       {r.preguntas.map((q, i) => <label className="brief-field qa-field" key={q}><b>{i + 1}. {q}</b><textarea value={answers[i] ?? ''} onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))} onBlur={() => saveAnswers(entry.id, answers)} placeholder="Escribe tu respuesta..." maxLength={MAX_ANSWER} disabled={busy === 'close'} /></label>)}
-      {busy === 'close' ? <Loading text="Axis está leyendo tus respuestas…" /> : <Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Axis <Send size={15} /></Button>}
+      {busy === 'close' ? <Loading axis text="Axis está leyendo tus respuestas…" /> : <Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Axis <Send size={15} /></Button>}
     </>}
 
     {stage === 'closed' && entry.closing && <>
