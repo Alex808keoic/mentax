@@ -24,12 +24,12 @@ const INTRO_POINTS = [
   { icon: PenLine, title: 'Tu diario', text: 'Escribe cómo te ha ido el día, sin prisa y sin formato.' },
   { icon: MessageCircle, title: 'Axis te acompaña', text: 'Lee lo que escribes, reflexiona contigo y te hace preguntas para ir más allá.' },
   { icon: Target, title: 'Tus objetivos', text: 'Lo que quieres conseguir, y cómo vas cada semana.' },
-  { icon: Lock, title: 'Solo en tu móvil', text: 'Lo que cuentes se guarda en este dispositivo. Sin cuenta.' },
+  { icon: Lock, title: 'Tuyo y privado', text: 'Lo que cuentes se guarda en tu móvil, sin cuenta. Si entras con Google, también en tu cuenta, para tenerlo en cualquier móvil.' },
 ] as const
 
 const AXIS_POINTS = [
   { icon: Layers, title: 'Qué es AXIS', text: 'La app que une Mentax con Finax y Axthletics: cada semana te resume cómo vas en mente, cuerpo y dinero, y te propone un paso para mejorar.' },
-  { icon: Link2, title: 'Por qué con Google', text: 'Con la misma cuenta en todas las apps, se conectan solas. No hay contraseñas nuevas.' },
+  { icon: Link2, title: 'Por qué con Google', text: 'Tus datos se guardan en tu cuenta y los tienes en cualquier móvil donde entres. Con la misma cuenta en todas las apps, se conectan solas. Sin contraseñas nuevas.' },
   { icon: Lock, title: 'Qué se comparte', text: 'Nada hasta que lo confirmes. Después, solo unos números por semana, como tu ánimo medio. Nunca tu diario, las reflexiones de Axis ni lo que hablas con él.' },
 ] as const
 

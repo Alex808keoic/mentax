@@ -7,6 +7,9 @@
  * ninguna petición. Con sesión y consentimiento, envía los resúmenes al abrir la app y
  * al salir de ella (como mucho cada pocos minutos). Si falla, no molesta: se vuelve a
  * intentar la próxima vez. Mentax nunca espera a AXIS.
+ *
+ * Con sesión, además, la copia en la nube (`cloud`): tus datos en cualquier
+ * dispositivo donde entres con la misma cuenta.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -15,7 +18,9 @@ import { db } from '@/lib/db'
 import { dayKey } from '@/lib/dates'
 import { buildWeeklySnapshots } from '@/lib/ecosystem/snapshot'
 import { isEcosystemSharing, type EcosystemSharing } from '@/lib/ecosystem/sharing'
-import { deleteSharedData, hasEcosystemSignal, pushSnapshots, signInWithGoogle, signOutOfEcosystem, watchEcosystemSession } from '@/lib/ecosystem/client'
+import { deleteSharedData, ecosystemClient, hasEcosystemSignal, pushSnapshots, signInWithGoogle, signOutOfEcosystem, watchEcosystemSession } from '@/lib/ecosystem/client'
+import { mentaxSyncAdapter } from '@/lib/ecosystem/mentax-sync'
+import { useCloudSync, type CloudSyncApi } from '@/lib/ecosystem/use-cloud-sync'
 
 /** Dónde se guarda el consentimiento. No viaja en la copia de seguridad: al restaurar hay que volver a activarlo. */
 const SHARING_KEY = 'ecosystem'
@@ -36,6 +41,8 @@ export interface EcosystemApi {
   /** Deja de compartir y borra en AXIS todo lo recibido de Mentax. */
   stopSharing(): Promise<boolean>
   signOut(): Promise<void>
+  /** Copia en la nube de tus datos (independiente de lo que se comparte con AXIS). */
+  cloud: CloudSyncApi
 }
 
 const APP_VERSION = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'
@@ -63,6 +70,7 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<EcosystemAccount>({ status: 'checking' })
   const [lastSentAt, setLastSentAt] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const cloud = useCloudSync({ adapter: mentaxSyncAdapter, session, getClient: ecosystemClient })
 
   useEffect(() => {
     if (!hasEcosystemSignal()) {
@@ -136,8 +144,8 @@ export function EcosystemProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => signOutOfEcosystem(), [])
 
   const value = useMemo<EcosystemApi>(
-    () => ({ account, sharing, lastSentAt, failed, signIn, share, stopSharing, signOut }),
-    [account, sharing, lastSentAt, failed, signIn, share, stopSharing, signOut],
+    () => ({ account, sharing, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud }),
+    [account, sharing, lastSentAt, failed, signIn, share, stopSharing, signOut, cloud],
   )
   return <EcosystemContext.Provider value={value}>{children}</EcosystemContext.Provider>
 }

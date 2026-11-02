@@ -13,7 +13,7 @@ const STARTERS = ['¿Cómo me ha ido esta semana?', '¿En qué objetivo voy mejo
 
 /**
  * Chat con Axis. Conoce el diario, los objetivos, los aprendizajes y lo que
- * contaste sobre ti. La conversación se guarda solo en este dispositivo.
+ * contaste sobre ti. La conversación se guarda en este dispositivo (y en la copia en la nube, si está activada).
  */
 export function AxisChat({ data, notify }: { data: AppData; notify: Notify }) {
   const messages = useLiveQuery(listChat)
