@@ -22,6 +22,22 @@ describe('base local', () => {
     assert.equal(e.title, 'He paseado por el parque')
   })
 
+  it('una entrada cambia de día con su conversación y sus avances, sin pisar otro día', async () => {
+    const goalId = await createGoal('Hacer ejercicio cada día', '', 0, { tracking: { kind: 'daily' } })
+    const id = await saveEntry({ date: '2024-05-21', text, durationSec: 10 })
+    await saveMentaxReflection(id, reflection)
+    await applyEntryProgress(id, '2024-05-21', [{ goalId, note: 'Ha corrido' }], true)
+    await saveEntry({ date: '2024-05-20', text, durationSec: 0 }, id)
+    const moved = (await db.reflections.get(id))!
+    assert.equal(moved.date, '2024-05-20')
+    assert.ok(moved.reflection)
+    assert.deepEqual((await db.goals.get(goalId))!.checkins!.map((c) => c.date), ['2024-05-20'])
+    const other = await saveEntry({ date: '2024-05-19', text: 'Otro día', durationSec: 0 })
+    await assert.rejects(saveEntry({ date: '2024-05-20', text: 'Otro día', durationSec: 0 }, other))
+    await assert.rejects(saveEntry({ date: '2024-05-20', text: 'Nueva', durationSec: 0 }))
+    assert.equal((await db.reflections.get(other))!.date, '2024-05-19')
+  })
+
   it('la conversación se conserva si el texto no cambia y se descarta si cambia', async () => {
     const id = await saveEntry({ date: '2024-05-20', text, durationSec: 10 })
     await saveMentaxReflection(id, reflection)

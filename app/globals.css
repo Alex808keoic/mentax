@@ -120,6 +120,12 @@ button:disabled { cursor: default; opacity: .55; }
 
 /* ── Diario ───────────────────────────────────────────── */
 .write-date { margin: -8px 4px 14px; }
+.day-picker { display: flex; gap: 6px; margin: -4px 0 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.day-picker::-webkit-scrollbar { display: none; }
+.day-picker button { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 52px; white-space: nowrap; border: 1px solid #e9e8f0; background: #fff; color: #77768b; border-radius: 14px; padding: 7px 11px; font-size: 11px; font-weight: 600; transition: background .15s, border-color .15s; }
+.day-picker button.selected { border-color: #b6a8fa; background: #f0edff; color: #6c56dc; font-weight: 750; }
+.day-picker button:disabled { opacity: .45; cursor: default; }
+.day-picker small { font-size: 8.5px; font-weight: 600; color: #9b9aac; }
 .diary-textarea { width: 100%; min-height: 260px; resize: vertical; border: 1px solid #e8e7ef; background: #fbfbfd; border-radius: 14px; outline: 0; padding: 16px; font-size: 13px; line-height: 1.65; color: var(--ink); }
 .diary-textarea:focus { border-color: #9d8df4; box-shadow: 0 0 0 3px #f0edff; }
 .diary-textarea::placeholder { color: #a2a0ae; }

@@ -3,6 +3,7 @@
  * /api/ai y guarda el resultado. Sin IA, el diario sigue funcionando.
  */
 import { addDays, currentStreak, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
+import { daysAgo } from '../entry-day'
 import { describeAbout } from '../about'
 import { addChatMessage, applyEntryProgress, db, getAbout, listChat, saveAnswersAndClosing, saveMentaxReflection } from '../db'
 import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
@@ -112,7 +113,7 @@ export async function reflectOnEntry(id: string): Promise<ProgressOutcome> {
   const { context, refs } = await memoryWithRefs(entry.date)
   const { avances, ...reflection } = await callAI<ReflectResult>({
     task: 'reflect',
-    input: { weekday: weekdayOf(entry.date), entry: toContext(entry, 6000), recent: await recentEntries(entry.date, 6, 500, id), ...context },
+    input: { weekday: weekdayOf(entry.date), ...(daysAgo(entry.date, dayKey()) > 0 ? { diasAtras: daysAgo(entry.date, dayKey()) } : {}), entry: toContext(entry, 6000), recent: await recentEntries(entry.date, 6, 500, id), ...context },
   })
   await saveMentaxReflection(id, reflection)
   // Reflexión nueva: los avances de una lectura anterior se sustituyen.

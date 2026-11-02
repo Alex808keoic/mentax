@@ -26,6 +26,8 @@ export interface MemoryContext {
 export interface ReflectInput extends MemoryContext {
   /** Día de la semana de la entrada («domingo»…). */
   weekday: string
+  /** Si la entrada es de un día anterior (escrita más tarde): cuántos días antes. */
+  diasAtras?: number
   entry: ContextEntry
   recent: ContextEntry[]
 }
@@ -133,7 +135,7 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
   const input = raw.input
   switch (raw.task) {
     case 'reflect':
-      return typeof input.weekday === 'string' && isEntry(input.entry) && (input.entry as ContextEntry).text.trim() !== '' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
+      return typeof input.weekday === 'string' && (input.diasAtras === undefined || typeof input.diasAtras === 'number') && isEntry(input.entry) && (input.entry as ContextEntry).text.trim() !== '' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
     case 'close':
       return isEntry(input.entry) && typeof input.reflexion === 'string' && isQA(input.qa) && (input.qa as unknown[]).length > 0 ? (raw as AIRequestBody) : null
     case 'ideas':

@@ -105,9 +105,10 @@ export async function saveEntry(draft: EntryDraft, id?: string): Promise<string>
   const existing = id ? await db.reflections.get(id) : undefined
   const text = draft.text.trim()
   const keepConversation = existing && existing.text === text
+  const moved = existing && existing.date !== draft.date
   const entry: Entry = {
     id: existing?.id ?? newId(),
-    date: existing?.date ?? draft.date,
+    date: draft.date,
     text,
     mood: draft.mood,
     title: keepConversation && existing.reflection?.title ? existing.title : deriveTitle(text),
@@ -121,9 +122,14 @@ export async function saveEntry(draft: EntryDraft, id?: string): Promise<string>
     updatedAt: now,
   }
   await db.transaction('rw', db.reflections, db.goals, async () => {
+    // Una entrada por día.
+    const other = await db.reflections.where('date').equals(entry.date).first()
+    if (other && other.id !== entry.id) throw new Error('Ese día ya tiene una entrada')
     await db.reflections.put(entry)
     // Los avances detectados en el texto anterior ya no valen.
     if (existing && !keepConversation) await removeEntryCheckins(existing.id)
+    // Si solo cambia de día, sus avances se mueven con ella.
+    else if (moved) await moveEntryCheckins(existing.id, entry.date)
   })
   return entry.id
 }
@@ -208,6 +214,16 @@ export function deleteGoal(id: string): Promise<void> {
 async function removeEntryCheckins(entryId: string): Promise<void> {
   await db.goals.toCollection().modify((g) => {
     if (g.checkins?.some((c) => c.entryId === entryId)) g.checkins = g.checkins.filter((c) => c.entryId !== entryId)
+  })
+}
+
+/** Pasa a otro día los avances detectados en una entrada (cuando la entrada cambia de día). */
+async function moveEntryCheckins(entryId: string, date: DayKey): Promise<void> {
+  await db.goals.toCollection().modify((g) => {
+    if (!g.checkins?.some((c) => c.entryId === entryId)) return
+    let checkins = g.checkins
+    for (const c of g.checkins.filter((c) => c.entryId === entryId)) checkins = withCheckin(checkins.filter((x) => x !== c), { ...c, date })
+    g.checkins = checkins
   })
 }
 

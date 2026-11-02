@@ -67,7 +67,7 @@ export function reflectPrompt(input: ReflectInput): PromptSpec {
   return {
     system: `${PERSONA}
 
-Tu tarea: la persona acaba de escribir la entrada de hoy en su diario. Devuelve:
+Tu tarea: la persona acaba de escribir la entrada de un día en su diario (normalmente hoy; si es de un día anterior, se indica en los datos y hablas de ese día, no de hoy). Devuelve:
 - "title": un título corto (máximo 7 palabras) que resuma el día, sin punto final.
 - "reflexion": tu reflexión sobre lo que ha escrito (4-6 frases). Refleja lo importante, valida lo que siente, señala algún patrón o contraste que veas (también respecto a días anteriores si los hay) y ofrece otra perspectiva sin dar lecciones.
 - "preguntas": exactamente 2 preguntas abiertas y concretas, basadas en lo que ha escrito, para que profundice. Cortas (máximo 22 palabras cada una). Nada genérico.
@@ -76,13 +76,13 @@ ${GOAL_FIELDS}
   No incluyas los que ya están en sus objetivos activos ni otros parecidos sobre la misma actividad (si ya tiene "Meditar cada día", no propongas "Meditar 10 minutos"). Si no menciona ninguno, lista vacía. No te los inventes.
 ${PROGRESS_RULES}
 - "ayudaProfesional": ver abajo.
-Si hoy es sábado o domingo y tiene objetivos propuestos esta semana, una de las dos preguntas puede ser sobre cómo le han ido.
+Si el día de la entrada es sábado o domingo y tiene objetivos propuestos esta semana, una de las dos preguntas puede ser sobre cómo le han ido.
 ${SERIOUS}
 Responde solo con JSON.`,
-    user: `Hoy es ${input.weekday}.
+    user: `${input.diasAtras ? `La entrada es del ${input.weekday} (${input.diasAtras === 1 ? 'ayer' : `hace ${input.diasAtras} días`}); la escribe ahora, más tarde.` : `Hoy es ${input.weekday}.`}
 
 <datos>
-Entrada de hoy:
+${input.diasAtras ? 'Entrada de ese día' : 'Entrada de hoy'}:
 ${formatEntry(input.entry)}
 
 Entradas anteriores (de más nueva a más antigua):
