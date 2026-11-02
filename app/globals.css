@@ -230,6 +230,7 @@ button:disabled { cursor: default; opacity: .55; }
 .onb-top .brand { font-size: 15px; gap: 8px; }
 .onb-top .brand-mark { width: 26px; height: 26px; border-radius: 8px; }
 .onb-link { border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 650; padding: 10px 4px; }
+.onb-error { margin: 8px 0 0; text-align: center; color: #d9534f; font-size: 12px; font-weight: 600; }
 .onb-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 22px 0; }
 .onb-hero { text-align: center; }
 .onb-tile { width: 96px; height: 96px; border-radius: 28px; overflow: hidden; margin: 0 auto; box-shadow: 0 12px 28px rgba(117, 96, 238, .22); }

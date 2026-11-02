@@ -58,6 +58,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   // Adónde ir al terminar, elegido en «done» antes del paso de AXIS.
   const [destination, setDestination] = useState<'write' | 'home'>('write')
   const ecosystem = useEcosystem()
+  const [restoreError, setRestoreError] = useState<string | null>(null)
   const set = (patch: Partial<AboutMe>) => setAbout((a) => ({ ...a, ...patch }))
   const go = (to: Step, dir: 'forward' | 'back') => { setDirection(dir); setStep(to) }
 
@@ -79,6 +80,18 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     await saveAbout({ ...EMPTY_ABOUT, completedAt: Date.now() })
   }
 
+  // «¿Ya usas Mentax?»: a Google sin guardar nada; al volver se recupera todo de la nube.
+  // Si la cuenta no tenía nada, la bienvenida vuelve a aparecer como siempre.
+  async function restore() {
+    setSaving(true)
+    setRestoreError(null)
+    const failure = await ecosystem.restoreWithGoogle()
+    if (failure) {
+      setRestoreError(failure)
+      setSaving(false)
+    }
+  }
+
   // Bienvenida con la estética de la de AXIS: marca centrada, título grande y un botón grande.
   if (step === 'welcome') return <div className="screen scrollable onb">
     <div className="onb-top"><span className="brand"><Logo /> Mentax</span><button type="button" className="onb-link" onClick={skip}>Ahora no</button></div>
@@ -88,7 +101,9 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
       <p className="onb-lead">Tu espacio para conocerte, entender lo que vives y avanzar a tu ritmo, con <b className="axis-name">Axis</b> a tu lado.</p>
     </div>
     <Dots count={2} active={0} />
-    <Button className="full-button" onClick={() => go('intro', 'forward')}>Empezar <ArrowRight size={16} /></Button>
+    <Button className="full-button" onClick={() => go('intro', 'forward')} disabled={saving}>Empezar <ArrowRight size={16} /></Button>
+    <Button variant="ghost" className="full-button onboarding-skip" onClick={() => void restore()} disabled={saving}>{saving ? 'Abriendo Google…' : '¿Ya usas Mentax? Entrar con Google'}</Button>
+    {restoreError && <p className="onb-error" role="alert">No se ha podido abrir Google: {restoreError}</p>}
   </div>
 
   if (step === 'intro') return <div className="screen scrollable onb">

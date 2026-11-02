@@ -14,12 +14,15 @@ import { Onboarding } from '@/components/mentax/screens/onboarding'
 import { AxisChat } from '@/components/mentax/screens/axis'
 import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
 import { RETURN_TO_PROFILE_KEY } from '@/lib/ecosystem/client'
+import { isRestorePending } from '@/lib/ecosystem/use-cloud-sync'
+import { useEcosystem } from '@/components/mentax/ecosystem'
 
 export default function Page() {
   const [route, setRoute] = useState<Route>({ screen: 'home' })
   const [toast, setToast] = useState('')
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const data = useAppData()
+  const { cloud } = useEcosystem()
 
   // Cada pantalla es una entrada del historial: el gesto «atrás» del móvil funciona.
   useEffect(() => {
@@ -42,7 +45,8 @@ export default function Page() {
     try {
       if (window.sessionStorage.getItem(RETURN_TO_PROFILE_KEY) === null) return
       window.sessionStorage.removeItem(RETURN_TO_PROFILE_KEY)
-      navigate('profile')
+      // Si se entró para recuperar los datos, se queda en Inicio.
+      if (!isRestorePending('mentax')) navigate('profile')
     } catch {
       // Sin sessionStorage se queda en Inicio.
     }
@@ -55,6 +59,8 @@ export default function Page() {
   }, [])
 
   if (!data) return <main className="app-shell"><div className="phone-frame"><div className="screen"><Loading text="Cargando…" /></div></div></main>
+  // Al volver de Google desde «¿Ya usas Mentax?», hasta que llegan los datos de la nube.
+  if (cloud.restoring) return <main className="app-shell"><div className="phone-frame"><div className="screen"><Loading text="Recuperando tus datos…" /></div></div></main>
 
   const props = { data, navigate, notify }
   // La primera vez (sin onboarding ni entradas), Axis pregunta quién eres antes de nada.
