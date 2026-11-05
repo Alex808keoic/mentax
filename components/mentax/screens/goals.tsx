@@ -41,7 +41,7 @@ export function GoalEditor({ goal, data, navigate, notify }: { goal?: Goal; data
   // En un objetivo nuevo, la forma de medir se deduce del título hasta que el usuario la elige.
   const [trackingTouched, setTrackingTouched] = useState(!!goal)
   const [confirming, setConfirming] = useState(false)
-  const back = () => navigate('goals')
+  const back = () => navigate('goals', undefined, { replace: true })
   const today = data.today
   const checkins = [...(goal?.checkins ?? [])].reverse()
   const doneToday = goal?.checkins?.some((c) => c.date === today)

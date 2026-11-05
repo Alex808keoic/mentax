@@ -8,6 +8,7 @@ import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
 import { AxisMark, Button, Header, Logo } from '../ui'
 import { useEcosystem } from '../ecosystem'
+import { useBackLayer } from '@/lib/navigation/use-back'
 import { EcosystemSection } from './ecosystem-section'
 
 type Panel = 'privacy' | 'help' | null
@@ -15,6 +16,7 @@ type Panel = 'privacy' | 'help' | null
 export function Profile({ data, navigate, notify }: { data: AppData; navigate: Navigate; notify: Notify }) {
   const { profile } = data
   const [editing, setEditing] = useState(false)
+  useBackLayer(editing, () => setEditing(false))
   const [name, setName] = useState(profile.name)
   const [tagline, setTagline] = useState(profile.tagline)
   const [panel, setPanel] = useState<Panel>(null)

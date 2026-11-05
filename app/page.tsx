@@ -16,29 +16,23 @@ import { BottomNav, Loading, TAB_SCREENS } from '@/components/mentax/ui'
 import { RETURN_TO_PROFILE_KEY } from '@/lib/ecosystem/client'
 import { isRestorePending } from '@/lib/ecosystem/use-cloud-sync'
 import { useEcosystem } from '@/components/mentax/ecosystem'
+import { useScreenStack } from '@/lib/navigation/use-back'
+
+const HOME: Route = { screen: 'home' }
+const sameRoute = (a: Route, b: Route) => a.screen === b.screen && a.id === b.id
 
 export default function Page() {
-  const [route, setRoute] = useState<Route>({ screen: 'home' })
+  // Cada pantalla es una entrada del historial, con Inicio como raíz: desde ella, «atrás» sale de la app.
+  const { current: route, navigate: goTo } = useScreenStack<Route>(HOME, sameRoute)
   const [toast, setToast] = useState('')
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const data = useAppData()
   const { cloud } = useEcosystem()
 
-  // Cada pantalla es una entrada del historial: el gesto «atrás» del móvil funciona.
-  useEffect(() => {
-    history.replaceState({ screen: 'home' } satisfies Route, '')
-    const onPop = (e: PopStateEvent) => setRoute((e.state as Route | null) ?? { screen: 'home' })
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-
   const navigate: Navigate = useCallback((screen, id, options) => {
-    const next: Route = { screen, id }
-    if (options?.replace) history.replaceState(next, '')
-    else history.pushState(next, '')
-    setRoute(next)
+    goTo({ screen, id }, options)
     window.scrollTo(0, 0)
-  }, [])
+  }, [goTo])
 
   // Al volver de entrar con Google para el ecosistema AXIS, se reabre Perfil, donde se empezó.
   useEffect(() => {

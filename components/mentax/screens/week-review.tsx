@@ -9,6 +9,7 @@ import type { WeekPlan } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
 import { Button, Header } from '../ui'
+import { useBackLayer } from '@/lib/navigation/use-back'
 
 /** Cierre del domingo: qué has conseguido esta semana y qué te propones para la siguiente. */
 export function WeekReview({ weekStart, data, navigate, notify }: { weekStart: string; data: AppData; navigate: Navigate; notify: Notify }) {
@@ -29,6 +30,7 @@ export function WeekReview({ weekStart, data, navigate, notify }: { weekStart: s
   const [saving, setSaving] = useState(false)
 
   const back = () => navigate('home')
+  useBackLayer(step === 'next', () => setStep('achieved'))
   if (existing) return <div className="screen scrollable"><Header title="Cierre de la semana" onBack={back} /><WeekPlanCard plan={existing} /></div>
 
   const toggle = (set: Set<string>, id: string) => { const s = new Set(set); if (s.has(id)) s.delete(id); else s.add(id); return s }

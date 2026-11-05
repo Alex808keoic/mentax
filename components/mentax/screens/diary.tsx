@@ -116,7 +116,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     if (!confirming) return setConfirming(true)
     await deleteEntry(entry!.id)
     notify('Entrada eliminada')
-    navigate('diary')
+    navigate('diary', undefined, { replace: true })
   }
 
   const canRetry = error && error !== AI_ERROR_MESSAGE['not-configured']

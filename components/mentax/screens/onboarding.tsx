@@ -12,6 +12,7 @@ import type { AppData } from '../data'
 import type { Navigate, Notify, Screen } from '../nav'
 import { AxisMark, Button, Header, Logo, MoodPicker } from '../ui'
 import { useEcosystem } from '../ecosystem'
+import { useBackLayer } from '@/lib/navigation/use-back'
 
 // «studies» no es una pregunta: es la página de por qué reflexionar funciona.
 const QUESTIONS = ['name', 'why', 'studies', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
@@ -61,6 +62,11 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const [restoreError, setRestoreError] = useState<string | null>(null)
   const set = (patch: Partial<AboutMe>) => setAbout((a) => ({ ...a, ...patch }))
   const go = (to: Step, dir: 'forward' | 'back') => { setDirection(dir); setStep(to) }
+
+  // «Atrás» del móvil, paso a paso. La bienvenida es la raíz y, editando, la primera pregunta vuelve a la pantalla de antes.
+  const questionIndex = QUESTIONS.indexOf(step as Question)
+  const previous: Step | null = step === 'axis' ? 'done' : step === 'done' ? QUESTIONS[QUESTIONS.length - 1] : step === 'intro' ? 'welcome' : questionIndex > 0 ? QUESTIONS[questionIndex - 1] : questionIndex === 0 && !editing ? 'intro' : null
+  useBackLayer(previous !== null, () => { if (previous && !saving) go(previous, 'back') })
 
   async function save(then: () => void) {
     if (saving) return

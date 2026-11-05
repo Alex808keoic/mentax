@@ -56,7 +56,7 @@ export function Write({ editId, today, navigate, notify }: { editId?: string; to
     return () => { cancelled = true }
   }, [editId, today])
 
-  const back = () => navigate(existing ? 'entry' : 'home', existing?.id)
+  const back = () => navigate(existing ? 'entry' : 'home', existing?.id, { replace: true })
 
   if (existing === undefined) return <div className="screen scrollable"><Header title="Mi diario" onBack={back} /><Loading text="Abriendo tu diario…" /></div>
 
