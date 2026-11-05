@@ -44,10 +44,10 @@ export function EcosystemSection({ notify }: { notify: Notify }) {
   const summary = !sharing
     ? 'No compartes nada'
     : failed
-      ? 'No se pudo enviar el último resumen; se reintenta al volver'
+      ? 'No se pudo enviar el último resumen; se reintenta solo'
       : lastSentAt
         ? `Compartiendo · último envío a las ${time.format(new Date(lastSentAt))}`
-        : 'Compartiendo cada semana'
+        : 'Compartiendo mientras usas Mentax'
 
   const cloudStatus = cloud.failed
     ? 'No se pudo sincronizar ahora; se reintenta en un momento.'
