@@ -38,7 +38,28 @@ const navItems: { id: Screen; label: string; icon: React.ComponentType<{ size?: 
 export const TAB_SCREENS: Screen[] = navItems.map((n) => n.id)
 
 export function BottomNav({ active, navigate }: { active: Screen; navigate: Navigate }) {
-  return <nav className="bottom-nav" aria-label="Navegación principal">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18} /><span>{label}</span></button>)}</nav>
+  const index = navItems.findIndex((n) => n.id === active)
+  return <nav className="bottom-nav" aria-label="Navegación principal">
+    {/* Una sola pastilla que se desliza hasta la pestaña activa, como en Finax y Axthletics. */}
+    <span className="nav-slider" aria-hidden="true" style={{ transform: `translateX(${index * 100}%)` }}><i className={active === 'axis' ? 'axis' : ''} /></span>
+    {navItems.map(({ id, label, icon: Icon }) => {
+      const on = active === id
+      return <button key={id} className={`${on ? 'active' : ''} ${id === 'axis' ? 'axis-tab' : ''}`} aria-current={on ? 'page' : undefined} onClick={() => navigate(id)}>
+        {/* El de Axis, activo, a todo color; inactivo, en una tinta como las demás pestañas. */}
+        <span className="nav-icon">{id === 'axis' && on ? <AxisSymbol size={18} /> : <Icon size={18} />}</span>
+        <span>{label}</span>
+      </button>
+    })}
+  </nav>
+}
+
+/** Selector de opciones: una sola pieza que se desliza hasta la elegida, como en Finax y Axthletics. */
+export function Segmented<T extends string>({ options, value, onChange }: { options: readonly { id: T; label: string }[]; value: T; onChange: (id: T) => void }) {
+  const index = options.findIndex((o) => o.id === value)
+  return <div className="segmented" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <span className="segmented-thumb" aria-hidden="true" style={{ width: `calc((100% - 6px) / ${options.length})`, transform: `translateX(${index * 100}%)` }} />
+    {options.map((o) => <button type="button" key={o.id} className={o.id === value ? 'selected' : ''} aria-pressed={o.id === value} onClick={() => onChange(o.id)}>{o.label}</button>)}
+  </div>
 }
 
 export function ActionRow({ icon, tone, title, subtitle, onClick }: { icon: React.ReactNode; tone: string; title: string; subtitle: string; onClick: () => void }) {

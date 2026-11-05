@@ -8,7 +8,7 @@ import { describeTracking, goalStatus, guessTracking, normalizeTracking, trackin
 import type { Goal, GoalTracking } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
-import { Button, Header } from '../ui'
+import { Button, Header, Segmented } from '../ui'
 
 const TABS = [['active', 'Activos'], ['completed', 'Completados'], ['all', 'Todos']] as const
 
@@ -24,8 +24,8 @@ export function Goals({ data, navigate }: { data: AppData; navigate: Navigate })
   const goals = data.goals.filter((g) => tab === 'all' || g.status === tab)
 
   return <div className="screen scrollable"><Header title="Objetivos" onBack={() => navigate('home')} action={<button className="round-plus" onClick={() => navigate('goal')} aria-label="Nuevo objetivo"><Plus size={18} /></button>} />
-    <div className="tab-row goal-tabs">{TABS.map(([id, label]) => <button key={id} className={tab === id ? 'selected' : ''} onClick={() => setTab(id)}>{label}</button>)}</div>
-    <div className="goals-list">{goals.map((g) => { const s = goalStatus(g, data.today); return <button className="goal-card" key={g.id} onClick={() => navigate('goal', g.id)}><span className={`goal-icon ${g.tone}`}>{g.status === 'completed' ? <Check size={17} /> : <Target size={17} />}</span><span className="goal-info"><b>{g.title}</b><small>{s.label}{g.entryId && ' · Del diario'}</small><span className="goal-progress"><i style={{ width: `${s.percent}%` }} /></span><em>{s.percent}%</em></span></button> })}</div>
+    <Segmented options={TABS.map(([id, label]) => ({ id, label }))} value={tab} onChange={setTab} />
+    <div className="goals-list" key={tab}>{goals.map((g) => { const s = goalStatus(g, data.today); return <button className="goal-card" key={g.id} onClick={() => navigate('goal', g.id)}><span className={`goal-icon ${g.tone}`}>{g.status === 'completed' ? <Check size={17} /> : <Target size={17} />}</span><span className="goal-info"><b>{g.title}</b><small>{s.label}{g.entryId && ' · Del diario'}</small><span className="goal-progress"><i style={{ width: `${s.percent}%` }} /></span><em>{s.percent}%</em></span></button> })}</div>
     {goals.length === 0 && <div className="empty-card">{tab === 'completed' ? 'Aún no has completado ningún objetivo. ¡Todo llegará!' : 'Todavía no tienes objetivos. Escríbelos en tu diario («esta semana quiero…») o añádelos aquí.'}</div>}
     <Button variant="soft" className="full-button" onClick={() => navigate('goal')}><Plus size={16} /> Añadir objetivo</Button>
     {tab === 'active' && goals.some((g) => trackingOf(g).kind !== 'manual') && <p className="form-hint">Axis rellena la barra sola cuando cuentas en el diario que has avanzado.</p>}
@@ -90,7 +90,7 @@ export function GoalEditor({ goal, data, navigate, notify }: { goal?: Goal; data
     <form className="form-stack goal-form" onSubmit={(e) => { e.preventDefault(); save() }}>
       <label className="field"><b>¿Qué quieres conseguir?</b><input value={title} onChange={(e) => changeTitle(e.target.value)} placeholder="Ej.: Hacer ejercicio cada día" maxLength={80} autoFocus={!goal} /></label>
       <div className="field"><b>¿Cómo se mide?</b>
-        <div className="tab-row kind-row">{KINDS.map(({ kind, label }) => <button type="button" key={kind} className={tracking.kind === kind ? 'selected' : ''} onClick={() => chooseKind(kind)}>{label}</button>)}</div>
+        <Segmented options={KINDS.map(({ kind, label }) => ({ id: kind, label }))} value={tracking.kind} onChange={chooseKind} />
         {(tracking.kind === 'weekly' || tracking.kind === 'total') && <label className="times-field"><input type="number" min={1} max={tracking.kind === 'weekly' ? 7 : 100} value={tracking.times} onChange={(e) => { setTrackingTouched(true); setTracking(normalizeTracking({ kind: tracking.kind, times: Number(e.target.value) } as GoalTracking)) }} /> {tracking.kind === 'weekly' ? 'veces por semana' : 'veces en total'}</label>}
         <small className="field-help">{tracking.kind === 'manual' ? 'Tú mueves la barra. Axis igualmente apunta los días en que avanzas.' : tracking.kind === 'total' ? 'Cada avance suma uno. Al llegar a la meta se completa solo.' : 'La barra se llena con los días que avanzas y empieza de nuevo cada lunes.'}</small>
       </div>

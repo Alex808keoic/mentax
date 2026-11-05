@@ -10,7 +10,7 @@ import { previewOf, stageOf, type EntryStage } from '@/lib/entries'
 import type { DetectedGoal, Entry } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
-import { AxisMark, Button, Header, Loading, moodOf } from '../ui'
+import { AxisMark, Button, Header, Loading, moodOf, Segmented } from '../ui'
 
 const TONES = ['violet', 'mint', 'peach']
 const FILTERS = ['Todas', 'Esta semana', 'Favoritas'] as const
@@ -29,8 +29,8 @@ export function Diary({ data, navigate }: { data: AppData; navigate: Navigate })
   const hasToday = data.entries.some((e) => e.date === data.today)
 
   return <div className="screen scrollable"><Header title="Mi diario" onBack={() => navigate('home')} action={<button className="icon-button" onClick={() => navigate('write')} aria-label={hasToday ? 'Editar la entrada de hoy' : 'Escribir la entrada de hoy'}>{hasToday ? <Pencil size={17} /> : <Plus size={19} />}</button>} />
-    <div className="tab-row">{FILTERS.map((tab) => <button key={tab} className={filter === tab ? 'selected' : ''} onClick={() => setFilter(tab)}>{tab}</button>)}</div>
-    <div className="reflection-list">{list.map((entry, i) => { const stage = STAGE_LABEL[stageOf(entry)]; return <button className="entry-card" key={entry.id} onClick={() => navigate('entry', entry.id)}>
+    <Segmented options={FILTERS.map((id) => ({ id, label: id }))} value={filter} onChange={setFilter} />
+    <div className="reflection-list" key={filter}>{list.map((entry, i) => { const stage = STAGE_LABEL[stageOf(entry)]; return <button className="entry-card" key={entry.id} onClick={() => navigate('entry', entry.id)}>
       <div className={`entry-date ${TONES[i % TONES.length]}`}>{formatLong(entry.date)}{entry.mood && <span className="entry-mood">{moodOf(entry.mood)?.emoji}</span>}{entry.favorite && <Heart size={11} className="fav-mark" />}</div>
       <h3>{entry.title}</h3><p className="clamp">{previewOf(entry)}</p>
       <div className="entry-footer"><span>{stage.icon} {stage.text}</span><ChevronRight size={17} /></div>

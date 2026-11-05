@@ -386,3 +386,95 @@ button:disabled { cursor: default; opacity: .55; }
 .why-compare-row span:first-child { color: #8a9a9c; }
 .why-compare-row span:last-child { color: #24393c; font-weight: 600; }
 .why-compare-row svg { color: #13838e; vertical-align: -2px; }
+
+/* ── Movimiento: el mismo lenguaje que Finax y Axthletics ─── */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Con un rebote mínimo, para lo que cambia de sitio. Nunca para entradas de pantalla. */
+  --spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+/* Barra inferior: una pastilla que se desliza hasta la pestaña activa. */
+.nav-slider { position: absolute; top: 7px; left: 5px; width: calc((100% - 10px) / 5); display: flex; justify-content: center; pointer-events: none; transition: transform 380ms var(--spring); }
+.nav-slider i { display: block; width: 48px; height: 28px; border-radius: 999px; background: var(--lavender-light); transition: background-color 200ms ease; }
+.nav-slider i.axis { background: #e6f6f8; }
+.bottom-nav button { position: relative; transition: color 200ms ease, transform 150ms ease; }
+.bottom-nav button:active { transform: scale(.95); }
+.bottom-nav button.active svg { filter: none; }
+.bottom-nav button.axis-tab.active { color: #13838e; }
+.nav-icon { display: flex; align-items: center; justify-content: center; height: 18px; transition: scale 200ms ease; }
+.bottom-nav button.active .nav-icon { scale: 1.1; }
+
+/* Selectores: una pieza que se desliza hasta la opción elegida. */
+.segmented { position: relative; display: grid; margin-bottom: 18px; padding: 3px; border: 1px solid #e9e8f0; border-radius: 999px; background: #fff; }
+.segmented-thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; border-radius: 999px; background: #f0edff; pointer-events: none; transition: transform 380ms var(--spring); }
+.segmented button { position: relative; min-width: 0; min-height: 34px; padding: 0 4px; border: 0; background: transparent; color: #77768b; font-size: 10.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 200ms ease, transform 130ms ease; }
+.segmented button:active { transform: scale(.97); }
+.segmented button.selected { color: #6c56dc; font-weight: 700; }
+.field .segmented { margin-bottom: 0; }
+
+/* Pantallas: la que sale se apaga, sin moverse y antes; la que entra llega desde su lado. Nunca se leen dos a la vez. */
+.screen { animation: none; view-transition-name: mentax-screen; }
+.bottom-nav { view-transition-name: mentax-nav; }
+.toast { view-transition-name: mentax-toast; }
+::view-transition-group(root) { animation: none; }
+::view-transition-old(root) { display: none; }
+::view-transition-new(root) { animation: none; }
+/* Sin viajar: con la página desplazada, el grupo cruzaría la pantalla hasta su sitio. */
+::view-transition-group(mentax-screen) { animation: none; }
+::view-transition-old(mentax-screen), ::view-transition-new(mentax-screen) { animation-duration: 260ms; animation-timing-function: var(--ease-out); animation-fill-mode: both; mix-blend-mode: normal; }
+/* La barra se ve en vivo, por encima del contenido: la pastilla se desliza a la vista. */
+::view-transition-group(mentax-nav) { animation: none; }
+::view-transition-old(mentax-nav) { display: none; }
+::view-transition-new(mentax-nav) { animation: none; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in-from-right { from { opacity: 0; transform: translateX(16px); } }
+@keyframes vt-in-from-left { from { opacity: 0; transform: translateX(-16px); } }
+@keyframes vt-tab-in-right { from { opacity: 0; transform: translateX(8px); } }
+@keyframes vt-tab-in-left { from { opacity: 0; transform: translateX(-8px); } }
+html[data-nav]::view-transition-old(mentax-screen) { animation-name: vt-out; animation-duration: 140ms; animation-timing-function: ease-out; }
+html[data-nav='forward']::view-transition-new(mentax-screen) { animation-name: vt-in-from-right; }
+html[data-nav='back']::view-transition-new(mentax-screen) { animation-name: vt-in-from-left; }
+html[data-nav='right']::view-transition-new(mentax-screen) { animation-name: vt-tab-in-right; }
+html[data-nav='left']::view-transition-new(mentax-screen) { animation-name: vt-tab-in-left; }
+
+/* Al entrar en una pantalla, sus bloques aparecen escalonados (muy sutil). Solo `backwards`: al terminar no queda ninguna capa. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.screen > :not(.onboarding-step) { animation: rise-in 300ms var(--ease-out) backwards; }
+.screen > :nth-child(2):not(.onboarding-step) { animation-delay: 20ms; }
+.screen > :nth-child(3):not(.onboarding-step) { animation-delay: 40ms; }
+.screen > :nth-child(4):not(.onboarding-step) { animation-delay: 60ms; }
+.screen > :nth-child(n + 5):not(.onboarding-step) { animation-delay: 80ms; }
+
+/* Listas (también al cambiar de filtro): una fila tras otra, hasta la sexta para que nadie espere. */
+.reflection-list > *, .goals-list > * { animation: rise-in 300ms var(--ease-out) backwards; }
+.reflection-list > :nth-child(2), .goals-list > :nth-child(2) { animation-delay: 40ms; }
+.reflection-list > :nth-child(3), .goals-list > :nth-child(3) { animation-delay: 80ms; }
+.reflection-list > :nth-child(4), .goals-list > :nth-child(4) { animation-delay: 120ms; }
+.reflection-list > :nth-child(5), .goals-list > :nth-child(5) { animation-delay: 160ms; }
+.reflection-list > :nth-child(n + 6), .goals-list > :nth-child(n + 6) { animation-delay: 200ms; }
+
+/* Al pulsar: se hunde un poco y vuelve, sin rebote. */
+.action-row, .entry-card, .goal-card, .setting-row, .week-review-card, .review-row, .profile-button, .round-plus, .icon-button, .edit-icon, .chip, .day-picker button, .mood-picker button, .share-chips button, .chat-starters button { transition: transform 130ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
+.week-review-card:active, .review-row:active { transform: scale(.985); }
+.icon-button:active, .edit-icon:active, .round-plus:active { transform: scale(.94); }
+.chip:active, .day-picker button:active, .mood-picker button:active, .share-chips button:active, .chat-starters button:active { transform: scale(.97); }
+
+/* Gráficas al aparecer: las barras crecen desde la base, una tras otra; el progreso, desde la izquierda. */
+@keyframes grow-up { from { transform: scaleY(0); } }
+@keyframes grow-right { from { transform: scaleX(0); } }
+.mood-week .bar i, .growth-bars .bar i { transform-origin: bottom; animation: grow-up 520ms var(--ease-out) backwards; }
+.mood-week > :nth-child(2) i, .growth-bars > :nth-child(2) i { animation-delay: 30ms; }
+.mood-week > :nth-child(3) i, .growth-bars > :nth-child(3) i { animation-delay: 60ms; }
+.mood-week > :nth-child(4) i, .growth-bars > :nth-child(4) i { animation-delay: 90ms; }
+.mood-week > :nth-child(5) i, .growth-bars > :nth-child(5) i { animation-delay: 120ms; }
+.mood-week > :nth-child(6) i, .growth-bars > :nth-child(6) i { animation-delay: 150ms; }
+.mood-week > :nth-child(7) i, .growth-bars > :nth-child(7) i { animation-delay: 180ms; }
+.growth-bars > :nth-child(8) i { animation-delay: 210ms; }
+.goal-progress i { transform-origin: left; animation: grow-right 600ms 120ms var(--ease-out) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen > *, .reflection-list > *, .goals-list > *, .mood-week .bar i, .growth-bars .bar i, .goal-progress i { animation: none !important; }
+  .nav-slider, .nav-slider i, .segmented-thumb, .nav-icon { transition: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
