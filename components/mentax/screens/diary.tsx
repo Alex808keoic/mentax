@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, CheckCircle2, ChevronRight, CircleDashed, Heart, LifeBuoy, MessageCircleQuestion, Pencil, Plus, Send, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Feather, ChevronRight, CircleDashed, Heart, LifeBuoy, MessageCircleQuestion, Pencil, Plus, Send, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 import { AI_ERROR_MESSAGE, AIUnavailableError, closeEntry, reflectOnEntry, type ProgressOutcome } from '@/lib/ai/client'
 import { formatLong, weekStart } from '@/lib/dates'
 import { createGoal, deleteEntry, markGoalHandled, removeCheckin, saveAnswers, saveLearning, toggleFavorite } from '@/lib/db'
@@ -10,14 +10,17 @@ import { previewOf, stageOf, type EntryStage } from '@/lib/entries'
 import type { DetectedGoal, Entry } from '@/lib/types'
 import type { AppData } from '../data'
 import type { Navigate, Notify } from '../nav'
-import { AxisMark, Button, Header, Loading, moodOf, Segmented } from '../ui'
+import { AxisMark, Button, CrisisCard, Header, Loading, moodOf, Segmented } from '../ui'
+import { isMinor } from '@/lib/about'
+import { detectRisk } from '@/lib/safety'
 
 const TONES = ['violet', 'mint', 'peach']
 const FILTERS = ['Todas', 'Esta semana', 'Favoritas'] as const
 const MAX_ANSWER = 2000
 
-const STAGE_LABEL: Record<EntryStage, { icon: React.ReactNode; text: string }> = {
+const STAGE_LABEL: Record<EntryStage | 'quiet', { icon: React.ReactNode; text: string }> = {
   written: { icon: <CircleDashed size={13} />, text: 'Sin reflexión de Axis' },
+  quiet: { icon: <Feather size={13} />, text: 'Solo escrita' },
   questions: { icon: <MessageCircleQuestion size={13} />, text: 'Axis te ha preguntado' },
   closed: { icon: <CheckCircle2 size={13} />, text: 'Reflexión completa' },
 }
@@ -30,7 +33,7 @@ export function Diary({ data, navigate }: { data: AppData; navigate: Navigate })
 
   return <div className="screen scrollable"><Header title="Mi diario" onBack={() => navigate('home')} action={<button className="icon-button" onClick={() => navigate('write')} aria-label={hasToday ? 'Editar la entrada de hoy' : 'Escribir la entrada de hoy'}>{hasToday ? <Pencil size={17} /> : <Plus size={19} />}</button>} />
     <Segmented options={FILTERS.map((id) => ({ id, label: id }))} value={filter} onChange={setFilter} />
-    <div className="reflection-list" key={filter}>{list.map((entry, i) => { const stage = STAGE_LABEL[stageOf(entry)]; return <button className="entry-card" key={entry.id} onClick={() => navigate('entry', entry.id)}>
+    <div className="reflection-list" key={filter}>{list.map((entry, i) => { const stage = STAGE_LABEL[entry.quiet && !entry.reflection ? 'quiet' : stageOf(entry)]; return <button className="entry-card" key={entry.id} onClick={() => navigate('entry', entry.id)}>
       <div className={`entry-date ${TONES[i % TONES.length]}`}>{formatLong(entry.date)}{entry.mood && <span className="entry-mood">{moodOf(entry.mood)?.emoji}</span>}{entry.favorite && <Heart size={11} className="fav-mark" />}</div>
       <h3>{entry.title}</h3><p className="clamp">{previewOf(entry)}</p>
       <div className="entry-footer"><span>{stage.icon} {stage.text}</span><ChevronRight size={17} /></div>
@@ -76,7 +79,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
 
   // Al llegar a una entrada sin reflexión, Axis la lee automáticamente.
   useEffect(() => {
-    if (id && stage === 'written' && !autoStarted.current) {
+    if (id && stage === 'written' && !entry?.quiet && !autoStarted.current) {
       autoStarted.current = true
       reflect()
     }
@@ -86,6 +89,9 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
   if (!entry) return <div className="screen scrollable"><Header title="Diario" onBack={() => navigate('diary')} /><div className="empty-card">Esta entrada ya no existe.<Button className="full-button" onClick={() => navigate('diary')}>Ver mi diario</Button></div></div>
 
   const mood = moodOf(entry.mood)
+  // Red de seguridad local: lo que escribe y lo que responde, sin esperar a la IA.
+  const atRisk = detectRisk(entry.text, ...entry.answers, ...answers)
+  const aiHelp = !!(entry.reflection?.ayudaProfesional || entry.closing?.ayudaProfesional)
   const r = entry.reflection
   const pendingGoals = (r?.objetivos ?? []).filter((g) => !entry.handledGoals.includes(g.title) && !data.goals.some((x) => x.status === 'active' && isSimilarGoal(x.title, g.title)))
   // Avances que Axis ha apuntado a partir de esta entrada.
@@ -124,7 +130,9 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
   return <div className="screen scrollable"><Header title="Entrada del diario" onBack={() => navigate('diary')} action={<button className={`icon-button ${entry.favorite ? 'fav-on' : ''}`} onClick={() => toggleFavorite(entry.id)} aria-label={entry.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'} aria-pressed={entry.favorite}><Heart size={19} fill={entry.favorite ? 'currentColor' : 'none'} /></button>} />
     <div className="detail-meta"><span>{formatLong(entry.date)}</span>{mood && <span className="mood"><span>{mood.emoji}</span> {mood.label}</span>}</div>
     <h2 className="detail-title">{entry.title}</h2>
+    {!!entry.emotions?.length && <div className="entry-emotions">{entry.emotions.map((e) => <span key={e}>{e}</span>)}</div>}
     <div className="diary-card"><p>{entry.text}</p></div>
+    {(atRisk || aiHelp) && <CrisisCard minor={isMinor(data.about)} />}
 
     {busy === 'reflect' && <Loading axis text="Axis está leyendo tu entrada…" />}
     {r && busy !== 'reflect' && <>
@@ -137,7 +145,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     {r && stage === 'questions' && r.preguntas.length > 0 && busy !== 'reflect' && <>
       <h2 className="section-title qa-title">Para seguir reflexionando</h2>
       {r.preguntas.map((q, i) => <label className="brief-field qa-field" key={q}><b>{i + 1}. {q}</b><textarea value={answers[i] ?? ''} onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))} onBlur={() => saveAnswers(entry.id, answers)} placeholder="Escribe tu respuesta..." maxLength={MAX_ANSWER} disabled={busy === 'close'} /></label>)}
-      {busy === 'close' ? <Loading axis text="Axis está leyendo tus respuestas…" /> : <Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Axis <Send size={15} /></Button>}
+      {busy === 'close' ? <Loading axis text="Axis está leyendo tus respuestas…" /> : <><Button className="full-button" onClick={sendAnswers} disabled={!answers.some((a) => a.trim())}>Enviar respuestas a Axis <Send size={15} /></Button><Button variant="ghost" className="full-button" onClick={() => navigate(entry.date === data.today ? 'home' : 'diary')}>Hoy prefiero dejarlo aquí</Button><p className="form-hint">Las preguntas son una invitación, no una tarea. Puedes volver a ellas cuando quieras.</p></>}
     </>}
 
     {stage === 'closed' && entry.closing && <>
@@ -151,7 +159,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
     </>}
 
     {error && <div className="notice-card"><p>{error}</p>{canRetry && <Button variant="soft" onClick={stage === 'written' ? reflect : sendAnswers}>Reintentar</Button>}</div>}
-    {!busy && stage === 'written' && !error && !autoStarted.current && <Button variant="soft" className="full-button" onClick={reflect}><AxisMark /> Pedir reflexión a Axis</Button>}
+    {!busy && stage === 'written' && !error && !autoStarted.current && <>{entry.quiet && <p className="quiet-note">Guardada solo para ti. Si te apetece, Axis puede leerla ahora.</p>}<Button variant="soft" className="full-button" onClick={() => { autoStarted.current = true; reflect() }}><AxisMark /> Pedir reflexión a Axis</Button></>}
 
     <div className="button-row entry-actions"><Button variant="soft" onClick={() => navigate('write', entry.id)}><Pencil size={16} /> Editar entrada</Button><button className={`delete-button ${confirming ? 'confirm' : ''}`} onClick={remove} onBlur={() => setConfirming(false)} aria-label="Eliminar entrada">{confirming ? '¿Borrar?' : <Trash2 size={17} />}</button></div>
     {r && <p className="ai-disclaimer">Axis es una herramienta de apoyo para reflexionar. No sustituye tu criterio ni la ayuda de un profesional.</p>}

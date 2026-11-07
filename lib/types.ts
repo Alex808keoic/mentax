@@ -33,6 +33,10 @@ export interface Entry {
   date: DayKey
   text: string
   mood?: Mood
+  /** Emociones que la persona ha marcado (lib/emotions). */
+  emotions?: string[]
+  /** «Hoy solo quiero escribir»: Axis no la lee hasta que se le pida. */
+  quiet?: boolean
   title: string
   favorite: boolean
   durationSec: number
@@ -92,6 +96,8 @@ export interface ChatMessage {
   id: string
   role: 'user' | 'axis'
   text: string
+  /** Solo en respuestas de Axis ante algo grave: recomendación de buscar ayuda, aparte del texto. */
+  help?: string
   createdAt: number
 }
 
@@ -160,6 +166,8 @@ export interface AboutMe {
   supports: string[]
   /** Cómo prefiere que le hable Mentax. */
   tone?: string
+  /** Cuándo se respondió o se descartó la invitación a completar «Sobre ti» tras los primeros días. */
+  moreAskedAt?: number
   /** Cuándo terminó (o saltó) el onboarding; sin él, se le muestra al entrar. */
   completedAt?: number
 }

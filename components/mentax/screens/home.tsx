@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { BookOpen, CalendarDays, Check, ChevronRight, Flag, Target, WandSparkles } from 'lucide-react'
 import { formatEyebrow, greeting, weekDays, weekStart } from '@/lib/dates'
 import { saveAbout, saveProfile } from '@/lib/db'
+import { missingAbout } from '@/lib/about'
 import { stageOf } from '@/lib/entries'
 import { pendingWeekReview } from '@/lib/week-plan'
 import { axisGreeting } from '@/lib/ai/client'
@@ -16,17 +17,20 @@ const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const TODAY_COPY = {
   none: { subtitle: 'Cuéntale a Axis qué tal tu día', card: 'Escribe sobre tu día y Axis reflexionará contigo.', button: 'Escribir' },
   written: { subtitle: 'Axis aún no ha leído tu entrada', card: 'Tu entrada está guardada. Pide a Axis que la lea.', button: 'Continuar' },
+  quiet: { subtitle: 'Hoy has escrito solo para ti', card: 'Tu entrada de hoy está guardada. Si te apetece, Axis puede leerla.', button: 'Ver' },
   questions: { subtitle: 'Axis te ha hecho unas preguntas', card: 'Axis te ha dejado un par de preguntas para seguir reflexionando.', button: 'Responder' },
-  closed: { subtitle: 'Reflexión de hoy completada · Ver', card: 'Hoy ya has cerrado tu reflexión. ¡Bien hecho!', button: 'Ver' },
+  closed: { subtitle: 'Reflexión de hoy completada · Ver', card: 'Hoy ya te has dedicado un rato. Gracias por cuidarte.', button: 'Ver' },
 }
 
 export function Home({ data, navigate }: { data: AppData; navigate: Navigate }) {
-  const { profile, entries, goals, streak, today } = data
+  const { profile, entries, goals, daysLast7, today } = data
   const done = new Set(entries.map((e) => e.date))
   const todays = entries.find((e) => e.date === today)
-  const copy = TODAY_COPY[todays ? stageOf(todays) : 'none']
+  const copy = TODAY_COPY[!todays ? 'none' : todays.quiet && !todays.reflection ? 'quiet' : stageOf(todays)]
   const openToday = () => (todays ? navigate('entry', todays.id) : navigate('write'))
   const activeGoals = goals.filter((g) => g.status === 'active')
+  // Tras unos días escribiendo, Axis pide lo que no preguntó al empezar (el onboarding es corto).
+  const askMore = !!data.about.completedAt && !data.about.moreAskedAt && entries.length >= 3 && missingAbout(data.about)
   const reviewWeek = pendingWeekReview(data.weekPlans.map((p) => p.weekStart))
   const [name, setName] = useState('')
   const [axisText, setAxisText] = useState<string>()
@@ -44,7 +48,8 @@ export function Home({ data, navigate }: { data: AppData; navigate: Navigate }) 
     {/* Quien ya usaba Mentax antes del onboarding: se le invita a rellenar «Sobre ti». */}
     {!data.about.completedAt && <div className="name-card about-card"><b>Cuéntale a Axis quién eres</b><p>Unas preguntas rápidas para que Axis te conozca mejor, te hable como prefieras y te proponga objetivos.</p><div><Button onClick={() => navigate('about', 'home')}>Empezar</Button><Button variant="ghost" onClick={() => saveAbout({ ...data.about, completedAt: Date.now() })}>Ahora no</Button></div></div>}
     {!profile.name && data.about.completedAt && <form className="name-card" onSubmit={(e) => { e.preventDefault(); if (name.trim()) saveProfile({ ...profile, name }) }}><b>¿Cómo quieres que Axis te llame?</b><div><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={40} /><Button type="submit" disabled={!name.trim()}>Guardar</Button></div></form>}
-    <section className="streak-card"><div><p>Tu racha actual</p><strong>{streak}</strong><small>{streak === 1 ? 'día' : 'días'}</small></div><div className="streak-days">{weekDays(weekStart(today)).map((day, i) => <div key={day}><i className={`${done.has(day) ? 'done' : ''} ${day === today ? 'today' : ''}`}>{done.has(day) ? <Check size={10} /> : ''}</i><small>{DAY_LETTERS[i]}</small></div>)}</div></section>
+    {askMore && <div className="name-card about-card"><b>Axis quiere conocerte un poco más</b><p>Ya llevas unos días escribiendo. Unas preguntas más (qué te ayuda en un mal día, qué partes de tu vida quieres cuidar…) para acompañarte mejor.</p><div><Button onClick={() => navigate('about', 'home')}>Responder</Button><Button variant="ghost" onClick={() => saveAbout({ ...data.about, moreAskedAt: Date.now() })}>Ahora no</Button></div></div>}
+    <section className="streak-card"><div><p>Días que has escrito</p><strong>{daysLast7}</strong><small>en los últimos 7</small></div><div className="streak-days">{weekDays(weekStart(today)).map((day, i) => <div key={day}><i className={`${done.has(day) ? 'done' : ''} ${day === today ? 'today' : ''}`}>{done.has(day) ? <Check size={10} /> : ''}</i><small>{DAY_LETTERS[i]}</small></div>)}</div></section>
     {reviewWeek && <button className="week-review-card" onClick={() => navigate('weekReview', reviewWeek)}><span className="review-icon"><Flag size={17} /></span><span><b>{reviewWeek === weekStart(today) ? 'Es domingo: cierra tu semana' : 'Te falta cerrar la semana pasada'}</b><small>Apunta qué objetivos has conseguido y cuáles te propones para la próxima semana.</small></span><ChevronRight size={17} /></button>}
     <section className="quick-section"><div className="section-heading"><h2>Acciones rápidas</h2></div>
       <ActionRow icon={<BookOpen />} tone="violet" title="Mi diario de hoy" subtitle={copy.subtitle} onClick={openToday} />

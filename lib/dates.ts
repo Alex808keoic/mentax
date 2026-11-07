@@ -30,18 +30,12 @@ export function weekDays(start: DayKey): DayKey[] {
 }
 
 /**
- * Días seguidos con al menos una reflexión. Si hoy aún no hay, la racha
- * sigue viva desde ayer (el día no ha terminado).
+ * Cuántos de los últimos `window` días (hoy incluido) tienen entrada. Sustituye
+ * a la racha: no se «rompe» ni castiga el día en que no se pudo escribir.
  */
-export function currentStreak(days: Iterable<DayKey>, today: DayKey): number {
-  const set = new Set(days)
-  let cursor = set.has(today) ? today : addDays(today, -1)
-  let streak = 0
-  while (set.has(cursor)) {
-    streak++
-    cursor = addDays(cursor, -1)
-  }
-  return streak
+export function daysWritten(days: Iterable<DayKey>, today: DayKey, window = 7): number {
+  const from = addDays(today, -(window - 1))
+  return new Set([...days].filter((d) => d >= from && d <= today)).size
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

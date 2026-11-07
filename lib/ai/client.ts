@@ -2,7 +2,7 @@
  * Lado cliente de la IA: reúne el contexto desde la base local, llama a
  * /api/ai y guarda el resultado. Sin IA, el diario sigue funcionando.
  */
-import { addDays, currentStreak, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
+import { addDays, daysWritten, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
 import { daysAgo } from '../entry-day'
 import { describeAbout } from '../about'
 import { addChatMessage, applyEntryProgress, db, getAbout, listChat, saveAnswersAndClosing, saveMentaxReflection } from '../db'
@@ -10,7 +10,7 @@ import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goal
 import { localIdeasFor } from '../entries'
 import { localGreeting, type AxisGreeting } from '../axis'
 import type { AboutMe, DayKey, Entry, WeekSummary } from '../types'
-import type { AboutReading, AIErrorCode, AIRequestBody, AIResponse, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
+import type { AboutReading, AIErrorCode, AIRequestBody, AIResponse, ChatReply, CloseResult, ContextEntry, GoalProgress, MemoryContext, ReflectResult } from './contract'
 
 export class AIUnavailableError extends Error {
   constructor(readonly code: AIErrorCode) {
@@ -53,7 +53,7 @@ export function qaOf(entry: Pick<Entry, 'reflection' | 'answers'>): { pregunta: 
 
 function toContext(e: Entry, maxText: number, maxAnswer = 300): ContextEntry {
   const qa = qaOf(e).filter((x) => x.respuesta).map((x) => ({ pregunta: x.pregunta, respuesta: clip(x.respuesta, maxAnswer) }))
-  return { date: e.date, mood: e.mood, text: clip(e.text.trim(), maxText), ...(qa.length ? { qa } : {}), ...(e.closing?.aprendizaje ? { aprendizaje: e.closing.aprendizaje } : {}) }
+  return { date: e.date, mood: e.mood, ...(e.emotions?.length ? { emociones: e.emotions } : {}), text: clip(e.text.trim(), maxText), ...(qa.length ? { qa } : {}), ...(e.closing?.aprendizaje ? { aprendizaje: e.closing.aprendizaje } : {}) }
 }
 
 /** Objetivos y aprendizajes para la IA, y a qué objetivo corresponde cada `ref` («g1»…). */
@@ -129,7 +129,7 @@ export async function closeEntry(id: string, answers: string[]): Promise<Progres
   const { context, refs } = await memoryWithRefs(entry.date)
   const { avances, ...closing } = await callAI<CloseResult>({
     task: 'close',
-    input: { entry: { date: entry.date, mood: entry.mood, text: clip(entry.text, 6000) }, reflexion: entry.reflection.reflexion, qa, ...context },
+    input: { entry: { date: entry.date, mood: entry.mood, ...(entry.emotions?.length ? { emociones: entry.emotions } : {}), text: clip(entry.text, 6000) }, reflexion: entry.reflection.reflexion, qa, ...context },
   })
   await saveAnswersAndClosing(id, answers, closing)
   // Las respuestas pueden añadir avances a los ya vistos en el texto.
@@ -232,7 +232,7 @@ export async function axisReply(): Promise<void> {
     db.goals.where('status').equals('completed').reverse().sortBy('updatedAt'),
   ])
   const written = entries.filter((e) => e.text.trim())
-  const text = await callAI<string>({
+  const reply = await callAI<ChatReply>({
     task: 'chat',
     input: {
       today,
@@ -241,12 +241,12 @@ export async function axisReply(): Promise<void> {
       older: written.slice(10, 130).map((e) => ({ date: e.date, ...(e.mood ? { mood: e.mood } : {}), title: e.title || clip(e.text.trim(), 60) })),
       weeks: weeks.filter((w) => w.resumen).map((w) => ({ weekStart: w.weekStart, resumen: w.resumen })),
       completed: completed.slice(0, 20).map((g) => g.title),
-      streak: currentStreak(entries.map((e) => e.date), today),
+      diasUltimaSemana: daysWritten(entries.map((e) => e.date), today),
       messages: history.map((m) => ({ role: m.role, text: clip(m.text, 1500) })),
       ...context,
     },
   }, 40_000)
-  await addChatMessage('axis', text)
+  await addChatMessage('axis', reply.respuesta, reply.ayudaProfesional)
 }
 
 /** Guarda el mensaje de la persona y pide la respuesta de Axis. */

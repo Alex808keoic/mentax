@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { addDays, currentStreak, dayKey, formatLong, weekDays, weekStart } from './dates'
+import { addDays, daysWritten, dayKey, formatLong, weekDays, weekStart } from './dates'
 import { deriveTitle, localIdeasFor, migrateEntry, stageOf } from './entries'
 import { cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanReflection, cleanWeek, parseAIRequest } from './ai/contract'
 import { parseBackup } from './backup'
@@ -26,16 +26,16 @@ describe('fechas', () => {
   })
 })
 
-describe('racha', () => {
-  it('cuenta días seguidos hasta hoy', () => {
-    assert.equal(currentStreak(['2024-05-19', '2024-05-20', '2024-05-21'], '2024-05-21'), 3)
+describe('días escritos (sin racha)', () => {
+  it('cuenta los días con entrada en los últimos 7, hoy incluido', () => {
+    assert.equal(daysWritten(['2024-05-19', '2024-05-20', '2024-05-21'], '2024-05-21'), 3)
   })
-  it('sigue viva desde ayer si hoy aún no hay entrada', () => {
-    assert.equal(currentStreak(['2024-05-19', '2024-05-20'], '2024-05-21'), 2)
+  it('un día sin escribir no borra lo anterior', () => {
+    assert.equal(daysWritten(['2024-05-15', '2024-05-18', '2024-05-20'], '2024-05-21'), 3)
   })
-  it('se rompe con un día sin entrada', () => {
-    assert.equal(currentStreak(['2024-05-18', '2024-05-21'], '2024-05-21'), 1)
-    assert.equal(currentStreak(['2024-05-18'], '2024-05-21'), 0)
+  it('no cuenta lo de hace más de 7 días ni repite días', () => {
+    assert.equal(daysWritten(['2024-05-14', '2024-05-21', '2024-05-21'], '2024-05-21'), 1)
+    assert.equal(daysWritten([], '2024-05-21'), 0)
   })
 })
 
@@ -184,7 +184,7 @@ describe('saludo de Axis', () => {
 describe('chat con Axis', () => {
   const memory = { goals: [], learnings: [] }
   const entry = { date: '2024-05-20', text: 'Hoy he paseado.' }
-  const base = { today: '2024-05-21', weekday: 'martes', recent: [entry], older: [{ date: '2024-05-01', title: 'Un lunes raro' }], weeks: [], completed: [], streak: 2, ...memory }
+  const base = { today: '2024-05-21', weekday: 'martes', recent: [entry], older: [{ date: '2024-05-01', title: 'Un lunes raro' }], weeks: [], completed: [], diasUltimaSemana: 2, ...memory }
 
   it('acepta una conversación que termina en un mensaje de la persona', () => {
     assert.ok(parseAIRequest({ task: 'chat', input: { ...base, messages: [{ role: 'user', text: 'Hola' }, { role: 'axis', text: '¿Qué tal?' }, { role: 'user', text: 'Bien' }] } }))
@@ -201,7 +201,8 @@ describe('chat con Axis', () => {
   })
 
   it('limpia la respuesta', () => {
-    assert.equal(cleanChat({ respuesta: '  Me alegro  ' }), 'Me alegro')
+    assert.deepEqual(cleanChat({ respuesta: '  Me alegro  ' }), { respuesta: 'Me alegro', ayudaProfesional: null })
+    assert.deepEqual(cleanChat({ respuesta: 'Estoy aquí', ayudaProfesional: ' Habla con alguien ' }), { respuesta: 'Estoy aquí', ayudaProfesional: 'Habla con alguien' })
     assert.equal(cleanChat({ respuesta: '' }), null)
   })
 })

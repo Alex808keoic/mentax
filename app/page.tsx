@@ -18,6 +18,7 @@ import { RETURN_TO_PROFILE_KEY } from '@/lib/ecosystem/client'
 import { isRestorePending } from '@/lib/ecosystem/use-cloud-sync'
 import { useEcosystem } from '@/components/mentax/ecosystem'
 import { useScreenStack, type ScreenChange } from '@/lib/navigation/use-back'
+import { isMinor } from '@/lib/about'
 
 const HOME: Route = { screen: 'home' }
 const sameRoute = (a: Route, b: Route) => a.screen === b.screen && a.id === b.id
@@ -106,7 +107,7 @@ export default function Page() {
   const { screen, id } = route
   const content = {
     home: <Home {...props} />,
-    write: <Write key={id ?? 'new'} editId={id} today={data.today} navigate={navigate} notify={notify} />,
+    write: <Write key={id ?? 'new'} editId={id} today={data.today} minor={isMinor(data.about)} navigate={navigate} notify={notify} />,
     diary: <Diary {...props} />,
     entry: <EntryView key={id} entry={id ? data.entries.find((e) => e.id === id) : undefined} {...props} />,
     week: <Week {...props} />,

@@ -9,6 +9,8 @@ import type { DayKey, DetectedGoal, GoalTracking, MentaxClosing, MentaxReflectio
 export interface ContextEntry {
   date: DayKey
   mood?: Mood
+  /** Emociones que marcó la persona. */
+  emociones?: string[]
   text: string
   /** Lo que Axis preguntó y lo que respondió el usuario. */
   qa?: { pregunta: string; respuesta: string }[]
@@ -77,7 +79,8 @@ export interface ChatInput extends MemoryContext {
   weeks: { weekStart: DayKey; resumen: string }[]
   /** Objetivos ya conseguidos. */
   completed: string[]
-  streak: number
+  /** Cuántos de los últimos 7 días ha escrito (sin rachas que se rompen). */
+  diasUltimaSemana: number
   messages: { role: 'user' | 'axis'; text: string }[]
 }
 
@@ -107,7 +110,8 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const isQA = (v: unknown) => Array.isArray(v) && v.every((x) => isObject(x) && typeof x.pregunta === 'string' && typeof x.respuesta === 'string')
 
 const isEntry = (v: unknown): v is ContextEntry =>
-  isObject(v) && typeof v.date === 'string' && typeof v.text === 'string' && (v.qa === undefined || isQA(v.qa))
+  isObject(v) && typeof v.date === 'string' && typeof v.text === 'string' && (v.qa === undefined || isQA(v.qa)) &&
+  (v.emociones === undefined || (Array.isArray(v.emociones) && v.emociones.length <= 6 && v.emociones.every((e) => typeof e === 'string' && e.length <= 30)))
 
 const isMemory = (v: Record<string, unknown>) =>
   Array.isArray(v.goals) &&
@@ -124,7 +128,7 @@ const isChat = (v: Record<string, unknown>) =>
   Array.isArray(v.older) && v.older.length <= 120 && v.older.every((e) => isObject(e) && typeof e.date === 'string' && typeof e.title === 'string') &&
   Array.isArray(v.weeks) && v.weeks.length <= 4 && v.weeks.every((w) => isObject(w) && typeof w.weekStart === 'string' && typeof w.resumen === 'string') &&
   Array.isArray(v.completed) && v.completed.length <= 20 && v.completed.every((c) => typeof c === 'string') &&
-  typeof v.streak === 'number' &&
+  typeof v.diasUltimaSemana === 'number' &&
   Array.isArray(v.messages) && v.messages.length > 0 && v.messages.length <= 30 &&
   v.messages.every((m) => isObject(m) && (m.role === 'user' || m.role === 'axis') && typeof m.text === 'string' && m.text.length <= 4000) &&
   (v.messages.at(-1) as { role: string }).role === 'user'
@@ -262,7 +266,14 @@ export function cleanPurpose(raw: unknown): string | null {
   return str(raw.respuesta, 1200) || null
 }
 
-export function cleanChat(raw: unknown): string | null {
+export interface ChatReply {
+  respuesta: string
+  /** Solo ante algo grave: recomendación de buscar ayuda, que la app muestra aparte. */
+  ayudaProfesional: string | null
+}
+
+export function cleanChat(raw: unknown): ChatReply | null {
   if (!isObject(raw)) return null
-  return str(raw.respuesta, 3000) || null
+  const respuesta = str(raw.respuesta, 3000)
+  return respuesta ? { respuesta, ayudaProfesional: str(raw.ayudaProfesional, 600) || null } : null
 }

@@ -1,6 +1,8 @@
 'use client'
 
-import { ArrowLeft, BookOpen, ChevronRight, CalendarDays, Compass, Target } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, CalendarDays, Compass, LifeBuoy, Phone, Target } from 'lucide-react'
+import { EMOTIONS, MAX_EMOTIONS } from '@/lib/emotions'
+import { helpLines } from '@/lib/safety'
 import type { Mood } from '@/lib/types'
 import type { Navigate, Screen } from './nav'
 import { AxisSymbol } from './axis-symbol'
@@ -81,6 +83,26 @@ export function MoodPicker({ value, onChange, label = '¿Cómo te sientes hoy?' 
 }
 
 /** Esperando. Si quien trabaja es Axis (`axis`), su símbolo gira despacio, como en AXIS. */
+/** Qué siente, además del ánimo: hasta MAX_EMOTIONS etiquetas opcionales. */
+export function EmotionPicker({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
+  const full = value.length >= MAX_EMOTIONS
+  return <div className="emotion-picker"><b>¿Qué emociones hay hoy? <span className="optional">(opcional)</span></b><div className="chip-grid">{EMOTIONS.map((e) => {
+    const on = value.includes(e)
+    return <button type="button" key={e} className={`chip ${on ? 'selected' : ''}`} aria-pressed={on} disabled={!on && full} onClick={() => onChange(on ? value.filter((x) => x !== e) : [...value, e])}>{e}</button>
+  })}</div></div>
+}
+
+/**
+ * Teléfonos de ayuda. No depende de la IA: se muestra cuando lo escrito tiene
+ * señales de riesgo (lib/safety) y siempre desde Perfil.
+ */
+export function CrisisCard({ minor = false, intro }: { minor?: boolean; intro?: string }) {
+  return <div className="crisis-card" role="note"><b><LifeBuoy size={16} /> No tienes que pasar por esto a solas</b>
+    <p>{intro ?? 'Si estás pensando en hacerte daño o en no seguir, habla hoy con alguien: una persona de confianza o un profesional. Hay gente preparada para escucharte ahora mismo.'}</p>
+    {helpLines(minor).map((l) => <a key={l.phone} className="crisis-line" href={`tel:${l.phone}`}><Phone size={14} /><span><em>{l.name}</em><small>{l.text}</small></span></a>)}
+  </div>
+}
+
 export function Loading({ text, axis = false }: { text: string; axis?: boolean }) {
   return <div className="loading-state" role="status">{axis ? <AxisSymbol size={20} className="axis-spin" /> : <span className="spinner" />}{text}</div>
 }

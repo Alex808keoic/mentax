@@ -7,6 +7,7 @@ import { EMPTY_ABOUT } from './about'
 import { deriveTitle, migrateEntry } from './entries'
 import { guessTracking, MANUAL, normalizeTracking, trackingOf, withCheckin } from './goals'
 import type { AboutMe, ChatMessage, DailyIdeas, DayKey, Entry, Goal, GoalRef, GoalTone, GoalTracking, Learning, MentaxClosing, MentaxReflection, Mood, Profile, WeekPlan, WeekSummary } from './types'
+import { cleanEmotions } from './emotions'
 
 interface SettingEntry {
   key: string
@@ -93,6 +94,9 @@ export interface EntryDraft {
   date: DayKey
   text: string
   mood?: Mood
+  emotions?: string[]
+  /** «Hoy solo quiero escribir»: guardar sin que Axis la lea. */
+  quiet?: boolean
   durationSec: number
 }
 
@@ -111,6 +115,8 @@ export async function saveEntry(draft: EntryDraft, id?: string): Promise<string>
     date: draft.date,
     text,
     mood: draft.mood,
+    ...(draft.emotions?.length ? { emotions: cleanEmotions(draft.emotions) } : {}),
+    ...(draft.quiet && !keepConversation ? { quiet: true } : {}),
     title: keepConversation && existing.reflection?.title ? existing.title : deriveTitle(text),
     favorite: existing?.favorite ?? false,
     durationSec: (existing?.durationSec ?? 0) + draft.durationSec,
@@ -141,7 +147,7 @@ export async function toggleFavorite(id: string): Promise<void> {
 
 /** Guarda la reflexión de Mentax; empieza de cero las respuestas y el cierre. */
 export async function saveMentaxReflection(id: string, reflection: MentaxReflection): Promise<void> {
-  await db.reflections.update(id, { reflection, answers: [], closing: undefined, ...(reflection.title ? { title: reflection.title } : {}), updatedAt: Date.now() })
+  await db.reflections.update(id, { reflection, answers: [], closing: undefined, quiet: undefined, ...(reflection.title ? { title: reflection.title } : {}), updatedAt: Date.now() })
 }
 
 export async function saveAnswersAndClosing(id: string, answers: string[], closing: MentaxClosing): Promise<void> {
@@ -320,8 +326,8 @@ export async function saveWeekPlan(draft: WeekPlanDraft): Promise<void> {
 
 // ── Chat con Axis ───────────────────────────────────────
 
-export async function addChatMessage(role: ChatMessage['role'], text: string): Promise<ChatMessage> {
-  const message: ChatMessage = { id: newId(), role, text: text.trim(), createdAt: Date.now() }
+export async function addChatMessage(role: ChatMessage['role'], text: string, help?: string | null): Promise<ChatMessage> {
+  const message: ChatMessage = { id: newId(), role, text: text.trim(), ...(help?.trim() ? { help: help.trim() } : {}), createdAt: Date.now() }
   await db.chat.add(message)
   return message
 }

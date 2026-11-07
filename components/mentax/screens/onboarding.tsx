@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, Check, Layers, Link2, Lock, MessageCircle, PenLine, Plus, Send, Target, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, Layers, LifeBuoy, Link2, Lock, MessageCircle, PenLine, Plus, Send, Target, X } from 'lucide-react'
 import { AGES, AREAS, describeAbout, EMPTY_ABOUT, MAX_PICKS, MOTIVES, OCCUPATIONS, SUPPORTS, TONES, type AboutOption } from '@/lib/about'
 import { explainPurpose, readAbout } from '@/lib/ai/client'
 import type { AboutReading } from '@/lib/ai/contract'
@@ -17,6 +17,9 @@ import { useBackLayer } from '@/lib/navigation/use-back'
 // «studies» no es una pregunta: es la página de por qué reflexionar funciona.
 const QUESTIONS = ['name', 'why', 'studies', 'motives', 'context', 'areas', 'mood', 'change', 'supports', 'tone'] as const
 type Question = (typeof QUESTIONS)[number]
+// La primera vez, solo lo esencial (menos fricción para quien llega en un mal momento). La edad va
+// porque cambia cómo cuida Axis a un menor. El resto se pide tras unos días (tarjeta en Inicio).
+const FIRST_RUN: readonly Question[] = ['name', 'context', 'motives', 'mood', 'change', 'tone']
 // «intro» (qué hace Mentax) va entre la bienvenida y las preguntas. «axis» va después de
 // «done»: invita a conectar con el ecosistema AXIS, y se puede saltar.
 type Step = 'welcome' | 'intro' | Question | 'done' | 'axis'
@@ -26,6 +29,7 @@ const INTRO_POINTS = [
   { icon: MessageCircle, title: 'Axis te acompaña', text: 'Lee lo que escribes, reflexiona contigo y te hace preguntas para ir más allá.' },
   { icon: Target, title: 'Tus objetivos', text: 'Lo que quieres conseguir, y cómo vas cada semana.' },
   { icon: Lock, title: 'Tuyo y privado', text: 'Lo que cuentes se guarda en tu móvil, sin cuenta. Si entras con Google, también en tu cuenta, para tenerlo en cualquier móvil.' },
+  { icon: LifeBuoy, title: 'Un apoyo, no una terapia', text: 'Axis es una inteligencia artificial para reflexionar. No sustituye a un profesional: si lo estás pasando mal, en Perfil tienes teléfonos de ayuda las 24 horas.' },
 ] as const
 
 const AXIS_POINTS = [
@@ -62,17 +66,19 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
   const [restoreError, setRestoreError] = useState<string | null>(null)
   const set = (patch: Partial<AboutMe>) => setAbout((a) => ({ ...a, ...patch }))
   const go = (to: Step, dir: 'forward' | 'back') => { setDirection(dir); setStep(to) }
+  const questions: readonly Question[] = editing ? QUESTIONS : FIRST_RUN
 
   // «Atrás» del móvil, paso a paso. La bienvenida es la raíz y, editando, la primera pregunta vuelve a la pantalla de antes.
-  const questionIndex = QUESTIONS.indexOf(step as Question)
-  const previous: Step | null = step === 'axis' ? 'done' : step === 'done' ? QUESTIONS[QUESTIONS.length - 1] : step === 'intro' ? 'welcome' : questionIndex > 0 ? QUESTIONS[questionIndex - 1] : questionIndex === 0 && !editing ? 'intro' : null
+  const questionIndex = questions.indexOf(step as Question)
+  const previous: Step | null = step === 'axis' ? 'done' : step === 'done' ? questions[questions.length - 1] : step === 'intro' ? 'welcome' : questionIndex > 0 ? questions[questionIndex - 1] : questionIndex === 0 && !editing ? 'intro' : null
   useBackLayer(previous !== null, () => { if (previous && !saving) go(previous, 'back') })
 
   async function save(then: () => void) {
     if (saving) return
     setSaving(true)
     if (name.trim()) await saveProfile({ ...data.profile, name })
-    await saveAbout({ ...about, completedAt: Date.now() })
+    // Editando (también desde la tarjeta «Axis quiere conocerte un poco más»), ya no se vuelve a pedir.
+    await saveAbout({ ...about, completedAt: Date.now(), ...(editing ? { moreAskedAt: about.moreAskedAt ?? Date.now() } : {}) })
     then()
   }
 
@@ -116,7 +122,7 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     <div className="onb-top"><button type="button" className="icon-button" onClick={() => go('welcome', 'back')} aria-label="Volver"><ArrowLeft size={19} /></button><button type="button" className="onb-link" onClick={skip}>Ahora no</button></div>
     <div className="onb-body">
       <h1>Qué hace Mentax</h1>
-      <p className="onb-lead">Antes de empezar, Axis quiere conocerte un poco: unas preguntas rápidas, unos dos minutos.</p>
+      <p className="onb-lead">Antes de empezar, Axis quiere conocerte un poco: seis preguntas rápidas, menos de un minuto.</p>
       <Points items={INTRO_POINTS} />
     </div>
     <Dots count={2} active={1} />
@@ -145,8 +151,8 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     <Button variant="ghost" className="full-button onboarding-skip" onClick={() => save(() => navigate(destination))} disabled={saving}>Ahora no</Button>
   </div>
 
-  const index = QUESTIONS.indexOf(step)
-  const last = index === QUESTIONS.length - 1
+  const index = questions.indexOf(step)
+  const last = index === questions.length - 1
   const answered: Record<Question, boolean> = {
     name: !!name.trim(),
     why: !!about.why?.trim(),
@@ -159,14 +165,14 @@ export function Onboarding({ data, navigate, notify, editing = false, returnTo =
     supports: about.supports.length > 0,
     tone: !!about.tone,
   }
-  const back = () => (index > 0 ? go(QUESTIONS[index - 1], 'back') : editing ? navigate(returnTo) : go('intro', 'back'))
-  const next = () => go(last ? 'done' : QUESTIONS[index + 1], 'forward')
+  const back = () => (index > 0 ? go(questions[index - 1], 'back') : editing ? navigate(returnTo) : go('intro', 'back'))
+  const next = () => go(last ? 'done' : questions[index + 1], 'forward')
   const nextLabel = !answered[step] && step !== 'name' ? 'Saltar' : last ? 'Terminar' : 'Siguiente'
 
   return <div className={`screen scrollable ${editing ? '' : 'onboarding'}`}>
     {editing && <Header title="Sobre ti" onBack={() => navigate(returnTo)} />}
-    <div className="progress-label"><span>Paso {index + 1} de {QUESTIONS.length}</span><span>Conociéndote</span></div>
-    <div className="progress"><i style={{ width: `${((index + 1) / QUESTIONS.length) * 100}%` }} /></div>
+    <div className="progress-label"><span>Paso {index + 1} de {questions.length}</span><span>Conociéndote</span></div>
+    <div className="progress"><i style={{ width: `${((index + 1) / questions.length) * 100}%` }} /></div>
 
     <div key={step} className={`onboarding-step ${direction}`}>
       {step === 'name' && <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) next() }}>

@@ -80,7 +80,18 @@ export const EMPTY_ABOUT: AboutMe = { motives: [], areas: [], supports: [], onMi
 const labelsOf = (options: AboutOption[], ids: string[]) => ids.flatMap((id) => options.find((o) => o.id === id)?.label.toLowerCase() ?? [])
 const labelOf = (options: AboutOption[], id?: string) => options.find((o) => o.id === id)?.label.toLowerCase()
 
-const MOOD_WORDS = ['mal', 'regular', 'normal', 'bien', 'muy bien']
+/**
+ * Lo que el onboarding corto no pregunta (contexto, áreas, apoyos, por qué
+ * reflexionar). Si falta algo, Axis lo pide tras los primeros días.
+ */
+export function missingAbout(about: AboutMe): boolean {
+  return !(about.age || about.occupation) || about.areas.length === 0 || about.supports.length === 0 || !about.why?.trim()
+}
+
+/** Si dijo tener menos de 18 años: Axis es más prudente y se añade ANAR a los teléfonos de ayuda. */
+export const isMinor = (about: Pick<AboutMe, 'age'>) => about.age === '-18'
+
+const MOOD_WORDS =['mal', 'regular', 'normal', 'bien', 'muy bien']
 
 /** Lo que la IA sabe de la persona, en pocas líneas. Null si no contó nada. */
 export function describeAbout(about: AboutMe): string | null {
@@ -88,6 +99,7 @@ export function describeAbout(about: AboutMe): string | null {
   const age = labelOf(AGES, about.age)
   const occupation = labelOf(OCCUPATIONS, about.occupation)
   if (age || occupation) lines.push([age && `Edad: ${age} años`, occupation && `Ahora mismo: ${occupation}`].filter(Boolean).join('. '))
+  if (isMinor(about)) lines.push('Es menor de edad: trátale con especial prudencia')
   if (about.why?.trim()) lines.push(`Por qué cree que es importante reflexionar: ${about.why.trim()}`)
   if (about.motives.length) lines.push(`Busca en Mentax: ${labelsOf(MOTIVES, about.motives).join(', ')}`)
   if (about.areas.length) lines.push(`Quiere cuidar: ${labelsOf(AREAS, about.areas).join(', ')}`)

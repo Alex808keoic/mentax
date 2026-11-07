@@ -64,7 +64,7 @@ export function Week({ data, navigate }: { data: AppData; navigate: Navigate }) 
     {!loading && summary && <>
       {summary.resumen && <div className="analysis-card week-summary"><b><AxisMark /> Cómo ha ido, según Axis</b><p>{summary.resumen}</p></div>}
       {summary.aprendizajes.length > 0 && <><h2 className="section-title">Aprendizajes clave</h2><div className="insight-card">{summary.aprendizajes.map((text, i) => <div className="insight" key={text}><span className={`insight-icon ${INSIGHT_TONES[i % INSIGHT_TONES.length]}`}><Lightbulb size={15} /></span><p>{text}</p></div>)}</div></>}
-      {summary.areas.length > 0 && <><h2 className="section-title">Áreas a mejorar</h2><div className="improve-card">{summary.areas.map((a) => <p key={a}><ChevronRight size={14} /> {a}</p>)}</div></>}
+      {summary.areas.length > 0 && <><h2 className="section-title">En qué fijarte</h2><div className="improve-card">{summary.areas.map((a) => <p key={a}><ChevronRight size={14} /> {a}</p>)}</div></>}
     </>}
     {!loading && !summary && weekLearnings.length > 0 && <><h2 className="section-title">Aprendizajes guardados</h2><div className="insight-card">{weekLearnings.map((l, i) => <div className="insight" key={l.id}><span className={`insight-icon ${INSIGHT_TONES[i % INSIGHT_TONES.length]}`}><Lightbulb size={15} /></span><p>{l.text}</p></div>)}</div></>}
     {plan && <><h2 className="section-title">Cierre de la semana</h2><WeekPlanCard plan={plan} /></>}

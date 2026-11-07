@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowUp, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowUp, LifeBuoy, RotateCcw, Trash2 } from 'lucide-react'
+import { isMinor } from '@/lib/about'
+import { detectRisk } from '@/lib/safety'
 import { AIUnavailableError, axisReply, sendToAxis } from '@/lib/ai/client'
 import { clearChat, listChat } from '@/lib/db'
 import type { AppData } from '../data'
 import type { Notify } from '../nav'
-import { AxisMark } from '../ui'
+import { AxisMark, CrisisCard } from '../ui'
 
 const STARTERS = ['¿Cómo me ha ido esta semana?', '¿En qué objetivo voy mejor?', 'Hoy no sé ni por dónde empezar', '¿Qué has aprendido de mí?']
 
@@ -64,11 +66,13 @@ export function AxisChat({ data, notify }: { data: AppData; notify: Notify }) {
 
   if (!messages) return <div className="screen" />
   const lastIsUser = messages.at(-1)?.role === 'user'
+  // Red de seguridad local: si en los últimos mensajes hay señales de riesgo, los teléfonos de ayuda se ven siempre, responda o no la IA.
+  const atRisk = detectRisk(...messages.slice(-8).filter((m) => m.role === 'user').map((m) => m.text))
 
   return <div className="screen axis-screen">
     <header className="axis-header">
       <AxisMark size="md" />
-      <div><h1>Axis</h1><p>Conoce tu diario, tus objetivos y lo que le has contado</p></div>
+      <div><h1>Axis</h1><p>Una IA para reflexionar a partir de tu diario</p></div>
       {messages.length > 0 && <button className={`icon-button ${confirmClear ? 'confirm' : ''}`} onClick={clear} onBlur={() => setConfirmClear(false)} aria-label={confirmClear ? 'Pulsa otra vez para borrar la conversación' : 'Borrar conversación'}>{confirmClear ? <span>¿Borrar?</span> : <Trash2 size={16} />}</button>}
     </header>
 
@@ -79,7 +83,8 @@ export function AxisChat({ data, notify }: { data: AppData; notify: Notify }) {
         <p>Aquí puedes hablar con Axis de lo que quieras: de cómo te sientes, de algo que escribiste, de tus objetivos o de cómo funciona Mentax.</p>
         <div className="chat-starters">{STARTERS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}</div>
       </div>}
-      {messages.map((m) => <div key={m.id} className={`bubble ${m.role}`}>{m.text}</div>)}
+      {messages.map((m) => <div key={m.id} className="chat-turn"><div className={`bubble ${m.role}`}>{m.text}</div>{m.help && <div className="help-card"><LifeBuoy size={18} /><p>{m.help}</p></div>}</div>)}
+      {atRisk && !thinking && <CrisisCard minor={isMinor(data.about)} />}
       {thinking && <div className="bubble axis thinking-axis" role="status"><AxisMark spin /> Pensando…</div>}
       {error && <div className="chat-error"><p>{error}</p>{lastIsUser && <button onClick={() => run(axisReply)}><RotateCcw size={13} /> Reintentar</button>}</div>}
       <div ref={end} />
