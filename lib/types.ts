@@ -44,6 +44,8 @@ export interface Entry {
   /** Respuestas a `reflection.preguntas`, en el mismo orden. */
   answers: string[]
   closing?: MentaxClosing
+  /** «Seguir hablando»: la conversación con Axis sobre este día después del cierre. */
+  followUp?: ChatMessage[]
   /** Objetivos detectados que el usuario ya ha añadido o descartado. */
   handledGoals: string[]
   createdAt: number

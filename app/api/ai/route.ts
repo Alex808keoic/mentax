@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server'
 import { cleanAboutReading, cleanChat, cleanClosing, cleanGreeting, cleanIdeas, cleanPurpose, cleanReflection, cleanWeek, MAX_BODY_BYTES, parseAIRequest, type AIErrorCode, type AIResponse } from '@/lib/ai/contract'
 import { AICallError, readAIConfig, runAI } from '@/lib/ai/cloudflare'
-import { aboutPrompt, chatPrompt, closePrompt, greetingPrompt, ideasPrompt, purposePrompt, reflectPrompt, weekPrompt } from '@/lib/ai/prompts'
+import { aboutPrompt, chatPrompt, closePrompt, followUpPrompt, greetingPrompt, ideasPrompt, purposePrompt, reflectPrompt, weekPrompt } from '@/lib/ai/prompts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
     else if (body.task === 'purpose') data = cleanPurpose(await runAI(config, purposePrompt(body.input)))
     else if (body.task === 'greeting') data = cleanGreeting(await runAI(config, greetingPrompt(body.input)))
     else if (body.task === 'chat') data = cleanChat(await runAI(config, chatPrompt(body.input)))
+    else if (body.task === 'followup') data = cleanChat(await runAI(config, followUpPrompt(body.input)))
     else data = cleanWeek(await runAI(config, weekPrompt(body.input)))
     if (!data) return fail('failed', 502)
     return NextResponse.json<AIResponse<unknown>>({ ok: true, data })

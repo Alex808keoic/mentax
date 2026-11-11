@@ -76,9 +76,9 @@ export async function runAI(config: AIConfig, spec: PromptSpec, fetchImpl: typeo
   const reasons = config.model.startsWith('openai/gpt-oss')
   const body = {
     model: config.model,
-    temperature: 0.6,
+    temperature: spec.temperature ?? 0.6,
     // Los gpt-oss razonan antes de contestar y ese razonamiento cuenta en el tope.
-    max_completion_tokens: reasons ? spec.maxOutputTokens + 1500 : spec.maxOutputTokens,
+    max_completion_tokens: reasons ? spec.maxOutputTokens + (spec.reasoning === 'medium' ? 3000 : 1500) : spec.maxOutputTokens,
     messages: [
       { role: 'system', content: spec.system },
       ...(spec.history ?? []),
@@ -87,7 +87,7 @@ export async function runAI(config: AIConfig, spec: PromptSpec, fetchImpl: typeo
     response_format: { type: 'json_schema', json_schema: { name: 'mentax_output', strict: true, schema: spec.schema } },
     // Solo Cloudflare entiende esta opción (quita el razonamiento de Gemma).
     ...(config.provider === 'Cloudflare' ? { chat_template_kwargs: { enable_thinking: false } } : {}),
-    ...(reasons ? { reasoning_effort: 'low' } : {}),
+    ...(reasons ? { reasoning_effort: spec.reasoning ?? 'low' } : {}),
   }
   let token: string
   try {

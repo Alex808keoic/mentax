@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, CheckCircle2, Feather, ChevronRight, CircleDashed, Heart, LifeBuoy, MessageCircleQuestion, Pencil, Plus, Send, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
-import { AI_ERROR_MESSAGE, AIUnavailableError, closeEntry, reflectOnEntry, type ProgressOutcome } from '@/lib/ai/client'
+import { ArrowRight, ArrowUp, Check, CheckCircle2, Feather, ChevronRight, CircleDashed, Heart, LifeBuoy, MessageCircleQuestion, Pencil, Plus, RotateCcw, Send, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { AI_ERROR_MESSAGE, AIUnavailableError, closeEntry, followUpReply, reflectOnEntry, sendFollowUp, type ProgressOutcome } from '@/lib/ai/client'
 import { formatLong, weekStart } from '@/lib/dates'
 import { createGoal, deleteEntry, markGoalHandled, removeCheckin, saveAnswers, saveLearning, toggleFavorite } from '@/lib/db'
 import { describeTracking, isSimilarGoal } from '@/lib/goals'
@@ -90,8 +90,8 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
 
   const mood = moodOf(entry.mood)
   // Red de seguridad local: lo que escribe y lo que responde, sin esperar a la IA.
-  const atRisk = detectRisk(entry.text, ...entry.answers, ...answers)
-  const aiHelp = !!(entry.reflection?.ayudaProfesional || entry.closing?.ayudaProfesional)
+  const atRisk = detectRisk(entry.text, ...entry.answers, ...answers, ...(entry.followUp ?? []).filter((m) => m.role === 'user').map((m) => m.text))
+  const aiHelp = !!(entry.reflection?.ayudaProfesional || entry.closing?.ayudaProfesional || entry.followUp?.some((m) => m.help))
   const r = entry.reflection
   const pendingGoals = (r?.objetivos ?? []).filter((g) => !entry.handledGoals.includes(g.title) && !data.goals.some((x) => x.status === 'active' && isSimilarGoal(x.title, g.title)))
   // Avances que Axis ha apuntado a partir de esta entrada.
@@ -155,6 +155,7 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
       {entry.closing.ayudaProfesional && entry.closing.ayudaProfesional !== r?.ayudaProfesional && <div className="help-card"><LifeBuoy size={18} /><p>{entry.closing.ayudaProfesional}</p></div>}
       {entry.closing.aprendizaje && <div className="analysis-card"><b>Aprendizaje del día</b><p>{entry.closing.aprendizaje}</p></div>}
       {entry.closing.aprendizaje && <Button variant="soft" className="full-button" disabled={learningSaved} onClick={async () => { await saveLearning(entry.closing!.aprendizaje, entry.id); notify('Aprendizaje guardado') }}>{learningSaved ? 'Aprendizaje guardado' : 'Guardar aprendizaje'} <Check size={16} /></Button>}
+      <FollowUp entry={entry} />
       <Button className="full-button" onClick={() => navigate(entry.date === data.today ? 'home' : 'diary')}>{entry.date === data.today ? 'Terminar el día' : 'Volver al diario'} <ArrowRight size={16} /></Button>
     </>}
 
@@ -168,4 +169,60 @@ export function EntryView({ entry, data, navigate, notify }: { entry?: Entry; da
 
 function qaPairs(entry: Entry): [string, string][] {
   return (entry.reflection?.preguntas ?? []).map((q, i) => [q, entry.answers[i]?.trim() ?? ''])
+}
+
+/** «Seguir hablando»: tras cerrar el día, la conversación con Axis sobre esta entrada continúa todo lo que se quiera. */
+function FollowUp({ entry }: { entry: Entry }) {
+  const messages = entry.followUp ?? []
+  const [open, setOpen] = useState(messages.length > 0)
+  const [text, setText] = useState('')
+  const [thinking, setThinking] = useState(false)
+  const [error, setError] = useState('')
+  const input = useRef<HTMLTextAreaElement>(null)
+
+  // El cuadro de texto crece con lo que escribes, hasta un tope.
+  useEffect(() => {
+    const el = input.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+  }, [text, open])
+
+  async function run(task: () => Promise<void>) {
+    setThinking(true)
+    setError('')
+    try {
+      await task()
+    } catch (e) {
+      setError(e instanceof AIUnavailableError ? e.message : 'Axis no ha podido responder ahora mismo.')
+    } finally {
+      setThinking(false)
+    }
+  }
+
+  function send() {
+    if (!text.trim() || thinking) return
+    const message = text
+    setText('')
+    void run(() => sendFollowUp(entry.id, message))
+  }
+
+  if (!open) return <Button variant="soft" className="full-button" onClick={() => { setOpen(true); requestAnimationFrame(() => input.current?.focus()) }}><AxisMark /> Seguir hablando con Axis</Button>
+
+  const lastIsUser = messages.at(-1)?.role === 'user'
+  return <section className="followup">
+    <h2 className="section-title qa-title">Seguir hablando</h2>
+    {messages.length === 0 && <p className="form-hint">Cuéntale a Axis lo que te ha removido, lo que no te encaja o lo que quieras explorar más de este día.</p>}
+    <div className="followup-log" aria-live="polite">
+      {messages.map((m) => <div key={m.id} className="chat-turn"><div className={`bubble ${m.role}`}>{m.text}</div>{m.help && <div className="help-card"><LifeBuoy size={18} /><p>{m.help}</p></div>}</div>)}
+      {thinking && <div className="bubble axis thinking-axis" role="status"><AxisMark spin /> Pensando…</div>}
+      {error && <div className="chat-error"><p>{error}</p>{lastIsUser && <button onClick={() => run(() => followUpReply(entry.id))}><RotateCcw size={13} /> Reintentar</button>}</div>}
+    </div>
+    <form className="chat-composer" onSubmit={(e) => { e.preventDefault(); send() }}>
+      <textarea ref={input} value={text} onChange={(e) => setText(e.target.value)} placeholder="Escribe a Axis…" rows={1} maxLength={1500}
+        // En ordenador, Enter envía (Mayús+Enter salta de línea); en el móvil, Enter salta de línea.
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && matchMedia('(pointer: fine)').matches) { e.preventDefault(); send() } }} />
+      <button type="submit" disabled={!text.trim() || thinking} aria-label="Enviar"><ArrowUp size={18} /></button>
+    </form>
+  </section>
 }

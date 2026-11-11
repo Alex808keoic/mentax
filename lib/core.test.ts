@@ -93,6 +93,11 @@ describe('contrato IA', () => {
     assert.equal(parseAIRequest({ task: 'greeting', input: { today: '2024-05-21', recent: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'reflect', input: { weekday: 'lunes', entry: { ...entry, text: '  ' }, recent: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'close', input: { entry, reflexion: 'r', qa: [], ...memory } }), null)
+    assert.ok(parseAIRequest({ task: 'reflect', input: { weekday: 'lunes', entry, recent: [], axisPrevio: ['Ayer te dije algo'], ...memory } }))
+    assert.equal(parseAIRequest({ task: 'reflect', input: { weekday: 'lunes', entry, recent: [], axisPrevio: [42], ...memory } }), null)
+    const msgs = [{ role: 'user', text: 'Sigo dándole vueltas' }]
+    assert.ok(parseAIRequest({ task: 'followup', input: { weekday: 'lunes', entry, reflexion: 'r', comentario: 'c', recent: [], messages: msgs, ...memory } }))
+    assert.equal(parseAIRequest({ task: 'followup', input: { weekday: 'lunes', entry, reflexion: 'r', comentario: 'c', recent: [], messages: [{ role: 'axis', text: 'Hola' }], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'week', input: { weekStart: '2024-05-20', entries: [], ...memory } }), null)
     assert.equal(parseAIRequest({ task: 'questions', input: memory }), null)
     assert.equal(parseAIRequest('hola'), null)

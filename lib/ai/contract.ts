@@ -32,6 +32,8 @@ export interface ReflectInput extends MemoryContext {
   diasAtras?: number
   entry: ContextEntry
   recent: ContextEntry[]
+  /** Comienzo de las últimas reflexiones de Axis, para que no se repita. */
+  axisPrevio?: string[]
 }
 
 export interface CloseInput extends MemoryContext {
@@ -84,6 +86,18 @@ export interface ChatInput extends MemoryContext {
   messages: { role: 'user' | 'axis'; text: string }[]
 }
 
+/** «Seguir hablando» sobre una entrada ya cerrada. */
+export interface FollowUpInput extends MemoryContext {
+  weekday: string
+  diasAtras?: number
+  /** La entrada, con las preguntas de Axis y sus respuestas. */
+  entry: ContextEntry
+  reflexion: string
+  comentario: string
+  recent: ContextEntry[]
+  messages: { role: 'user' | 'axis'; text: string }[]
+}
+
 export type AIRequestBody =
   | { task: 'reflect'; input: ReflectInput }
   | { task: 'close'; input: CloseInput }
@@ -93,6 +107,7 @@ export type AIRequestBody =
   | { task: 'purpose'; input: PurposeInput }
   | { task: 'greeting'; input: GreetingInput }
   | { task: 'chat'; input: ChatInput }
+  | { task: 'followup'; input: FollowUpInput }
 
 export type AITask = AIRequestBody['task']
 
@@ -123,15 +138,18 @@ const isMemory = (v: Record<string, unknown>) =>
 
 const isEntryList = (v: unknown) => Array.isArray(v) && v.length <= 14 && v.every(isEntry)
 
+const isMessages = (v: unknown) =>
+  Array.isArray(v) && v.length > 0 && v.length <= 30 &&
+  v.every((m) => isObject(m) && (m.role === 'user' || m.role === 'axis') && typeof m.text === 'string' && m.text.length <= 4000) &&
+  (v.at(-1) as { role: string }).role === 'user'
+
 const isChat = (v: Record<string, unknown>) =>
   isEntryList(v.recent) &&
   Array.isArray(v.older) && v.older.length <= 120 && v.older.every((e) => isObject(e) && typeof e.date === 'string' && typeof e.title === 'string') &&
   Array.isArray(v.weeks) && v.weeks.length <= 4 && v.weeks.every((w) => isObject(w) && typeof w.weekStart === 'string' && typeof w.resumen === 'string') &&
   Array.isArray(v.completed) && v.completed.length <= 20 && v.completed.every((c) => typeof c === 'string') &&
   typeof v.diasUltimaSemana === 'number' &&
-  Array.isArray(v.messages) && v.messages.length > 0 && v.messages.length <= 30 &&
-  v.messages.every((m) => isObject(m) && (m.role === 'user' || m.role === 'axis') && typeof m.text === 'string' && m.text.length <= 4000) &&
-  (v.messages.at(-1) as { role: string }).role === 'user'
+  isMessages(v.messages)
 
 /** Devuelve la petición si tiene la forma esperada; si no, null. */
 export function parseAIRequest(raw: unknown): AIRequestBody | null {
@@ -139,7 +157,10 @@ export function parseAIRequest(raw: unknown): AIRequestBody | null {
   const input = raw.input
   switch (raw.task) {
     case 'reflect':
-      return typeof input.weekday === 'string' && (input.diasAtras === undefined || typeof input.diasAtras === 'number') && isEntry(input.entry) && (input.entry as ContextEntry).text.trim() !== '' && isEntryList(input.recent) ? (raw as AIRequestBody) : null
+      return typeof input.weekday === 'string' && (input.diasAtras === undefined || typeof input.diasAtras === 'number') && isEntry(input.entry) && (input.entry as ContextEntry).text.trim() !== '' && isEntryList(input.recent) &&
+        (input.axisPrevio === undefined || (Array.isArray(input.axisPrevio) && input.axisPrevio.length <= 5 && input.axisPrevio.every((t) => typeof t === 'string' && t.length <= 500))) ? (raw as AIRequestBody) : null
+    case 'followup':
+      return typeof input.weekday === 'string' && (input.diasAtras === undefined || typeof input.diasAtras === 'number') && isEntry(input.entry) && typeof input.reflexion === 'string' && typeof input.comentario === 'string' && isEntryList(input.recent) && isMessages(input.messages) ? (raw as AIRequestBody) : null
     case 'close':
       return isEntry(input.entry) && typeof input.reflexion === 'string' && isQA(input.qa) && (input.qa as unknown[]).length > 0 ? (raw as AIRequestBody) : null
     case 'ideas':

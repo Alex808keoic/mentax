@@ -5,7 +5,7 @@
 import { addDays, daysWritten, dayKey, parseDayKey, weekDays, weekStart } from '../dates'
 import { daysAgo } from '../entry-day'
 import { describeAbout } from '../about'
-import { addChatMessage, applyEntryProgress, db, getAbout, listChat, saveAnswersAndClosing, saveMentaxReflection } from '../db'
+import { addChatMessage, addFollowUp, applyEntryProgress, db, getAbout, listChat, saveAnswersAndClosing, saveMentaxReflection } from '../db'
 import { describeTracking, goalStatus, isSimilarGoal, trackingOf } from '../goals'
 import { localIdeasFor } from '../entries'
 import { localGreeting, type AxisGreeting } from '../axis'
@@ -103,6 +103,16 @@ async function recentEntries(before: DayKey, count: number, maxText: number, exc
     .map((e) => toContext(e, maxText))
 }
 
+/** Lo último que dijo Axis en otras entradas, para que no repita ideas ni comienzos. */
+async function previousReflections(excludeId: string): Promise<string[]> {
+  const list = await db.reflections.orderBy('createdAt').reverse().limit(12).toArray()
+  return list
+    .filter((e) => e.id !== excludeId && e.reflection?.reflexion)
+    .sort((a, b) => (b.reflection!.createdAt ?? 0) - (a.reflection!.createdAt ?? 0))
+    .slice(0, 4)
+    .map((e) => clip(e.reflection!.reflexion.replace(/\s+/g, ' '), 300))
+}
+
 const weekdayOf = (date: DayKey) => parseDayKey(date).toLocaleDateString('es-ES', { weekday: 'long' })
 
 // ── Reflexión de Axis sobre la entrada ────────────────
@@ -111,9 +121,10 @@ export async function reflectOnEntry(id: string): Promise<ProgressOutcome> {
   const entry = await db.reflections.get(id)
   if (!entry || !entry.text.trim()) throw new AIUnavailableError('bad-request')
   const { context, refs } = await memoryWithRefs(entry.date)
+  const axisPrevio = await previousReflections(id)
   const { avances, ...reflection } = await callAI<ReflectResult>({
     task: 'reflect',
-    input: { weekday: weekdayOf(entry.date), ...(daysAgo(entry.date, dayKey()) > 0 ? { diasAtras: daysAgo(entry.date, dayKey()) } : {}), entry: toContext(entry, 6000), recent: await recentEntries(entry.date, 6, 500, id), ...context },
+    input: { weekday: weekdayOf(entry.date), ...(daysAgo(entry.date, dayKey()) > 0 ? { diasAtras: daysAgo(entry.date, dayKey()) } : {}), entry: toContext(entry, 6000), recent: await recentEntries(entry.date, 6, 500, id), ...(axisPrevio.length ? { axisPrevio } : {}), ...context },
   })
   await saveMentaxReflection(id, reflection)
   // Reflexión nueva: los avances de una lectura anterior se sustituyen.
@@ -253,4 +264,34 @@ export async function axisReply(): Promise<void> {
 export async function sendToAxis(text: string): Promise<void> {
   await addChatMessage('user', clip(text.trim(), 1500))
   await axisReply()
+}
+
+// ── «Seguir hablando» sobre una entrada ─────────────────
+
+/** Responde al último mensaje de «Seguir hablando» de una entrada y guarda la respuesta. */
+export async function followUpReply(id: string): Promise<void> {
+  const entry = await db.reflections.get(id)
+  const history = (entry?.followUp ?? []).slice(-20)
+  if (!entry?.reflection || history.at(-1)?.role !== 'user') return
+  const ago = daysAgo(entry.date, dayKey())
+  const reply = await callAI<ChatReply>({
+    task: 'followup',
+    input: {
+      weekday: weekdayOf(entry.date),
+      ...(ago > 0 ? { diasAtras: ago } : {}),
+      entry: toContext(entry, 6000, 2000),
+      reflexion: entry.reflection.reflexion,
+      comentario: entry.closing?.comentario ?? '',
+      recent: await recentEntries(entry.date, 4, 400, id),
+      messages: history.map((m) => ({ role: m.role, text: clip(m.text, 1500) })),
+      ...(await memory(entry.date)),
+    },
+  }, 40_000)
+  await addFollowUp(id, 'axis', reply.respuesta, reply.ayudaProfesional)
+}
+
+/** Guarda el mensaje de la persona en «Seguir hablando» y pide la respuesta de Axis. */
+export async function sendFollowUp(id: string, text: string): Promise<void> {
+  await addFollowUp(id, 'user', clip(text.trim(), 1500))
+  await followUpReply(id)
 }

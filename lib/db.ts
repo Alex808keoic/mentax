@@ -123,6 +123,7 @@ export async function saveEntry(draft: EntryDraft, id?: string): Promise<string>
     reflection: keepConversation ? existing.reflection : undefined,
     answers: keepConversation ? existing.answers : [],
     closing: keepConversation ? existing.closing : undefined,
+    ...(keepConversation && existing.followUp?.length ? { followUp: existing.followUp } : {}),
     handledGoals: keepConversation ? existing.handledGoals : [],
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
@@ -147,7 +148,7 @@ export async function toggleFavorite(id: string): Promise<void> {
 
 /** Guarda la reflexión de Mentax; empieza de cero las respuestas y el cierre. */
 export async function saveMentaxReflection(id: string, reflection: MentaxReflection): Promise<void> {
-  await db.reflections.update(id, { reflection, answers: [], closing: undefined, quiet: undefined, ...(reflection.title ? { title: reflection.title } : {}), updatedAt: Date.now() })
+  await db.reflections.update(id, { reflection, answers: [], closing: undefined, followUp: undefined, quiet: undefined, ...(reflection.title ? { title: reflection.title } : {}), updatedAt: Date.now() })
 }
 
 export async function saveAnswersAndClosing(id: string, answers: string[], closing: MentaxClosing): Promise<void> {
@@ -330,6 +331,15 @@ export async function addChatMessage(role: ChatMessage['role'], text: string, he
   const message: ChatMessage = { id: newId(), role, text: text.trim(), ...(help?.trim() ? { help: help.trim() } : {}), createdAt: Date.now() }
   await db.chat.add(message)
   return message
+}
+
+/** Añade un mensaje a «Seguir hablando» de una entrada. */
+export async function addFollowUp(entryId: string, role: ChatMessage['role'], text: string, help?: string | null): Promise<void> {
+  const message: ChatMessage = { id: newId(), role, text: text.trim(), ...(help?.trim() ? { help: help.trim() } : {}), createdAt: Date.now() }
+  await db.transaction('rw', db.reflections, async () => {
+    const entry = await db.reflections.get(entryId)
+    if (entry) await db.reflections.update(entryId, { followUp: [...(entry.followUp ?? []), message], updatedAt: Date.now() })
+  })
 }
 
 export const listChat = () => db.chat.orderBy('createdAt').toArray()
