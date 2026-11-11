@@ -22,6 +22,14 @@ function input(over: Partial<SnapshotInput> = {}): SnapshotInput {
 }
 
 describe('resúmenes semanales de Mentax para AXIS', () => {
+  it('la semana actual lleva «Tu ánimo» día a día (media de las entradas del día); las pasadas no', () => {
+    const snaps = buildWeeklySnapshots(input({ entries: [entry('2026-10-20', 5), entry('2026-10-27', 4), entry('2026-10-27', 1), entry('2026-10-29', 3), entry('2026-10-29')] }))
+    assert.equal(snaps[0].moodDays, undefined)
+    assert.deepEqual(snaps.at(-1)!.moodDays, [{ date: '2026-10-27', mood: 2.5 }, { date: '2026-10-29', mood: 3 }])
+    const noMood = buildWeeklySnapshots(input({ entries: [entry('2026-10-27', 4)], sharing: { metrics: ['entries_count'], goalTitles: false } }))
+    assert.equal(noMood.at(-1)!.moodDays, undefined)
+  })
+
   it('sin entradas hay un solo snapshot, el de la semana actual, y el ánimo es «sin datos»', () => {
     const [week, ...rest] = buildWeeklySnapshots(input())
     assert.equal(rest.length, 0)

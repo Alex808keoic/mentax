@@ -53,6 +53,14 @@ function weekMetrics(week: DayKey, input: SnapshotInput): Partial<Record<MentaxM
   return metrics
 }
 
+/** El ánimo de cada día de la semana con ánimo: la media de sus entradas, como «Tu ánimo» en Mentax. */
+function moodDays(week: DayKey, input: SnapshotInput): { date: DayKey; mood: number }[] {
+  const end = addDays(week, 6)
+  const byDay = new Map<DayKey, number[]>()
+  for (const e of input.entries) if (e.date >= week && e.date <= end && e.mood) byDay.set(e.date, [...(byDay.get(e.date) ?? []), e.mood])
+  return [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, list]) => ({ date, mood: list.reduce((a, b) => a + b, 0) / list.length }))
+}
+
 /** Los objetivos de hoy, solo si se permitieron los títulos. Solo van en la semana actual. */
 function currentGoals(input: SnapshotInput): SnapshotGoal[] {
   if (!input.sharing.goalTitles) return []
@@ -82,6 +90,8 @@ export function buildWeeklySnapshots(input: SnapshotInput): Snapshot[] {
       generatedAt: input.generatedAt,
       metrics: weekMetrics(week, input),
       goals: week === current ? currentGoals(input) : [],
+      // «Tu ánimo» de Mentax, día a día, para que AXIS dibuje exactamente lo mismo.
+      ...(week === current && input.sharing.metrics.includes('mood_avg') ? { moodDays: moodDays(week, input) } : {}),
     })
   }
   return snapshots

@@ -67,6 +67,13 @@ export type Snapshot = {
   generatedAt: string
   metrics: Partial<Record<string, MetricValue>>
   goals: SnapshotGoal[]
+  /** Solo Mentax, solo en la semana en curso y si se comparte el ánimo: el ánimo de cada día (media de sus entradas), lo que dibuja «Tu ánimo». */
+  moodDays?: MoodDay[]
+}
+
+export interface MoodDay {
+  date: string
+  mood: number
 }
 
 export type SnapshotValidation = { ok: true; snapshot: Snapshot } | { ok: false; reason: string }
